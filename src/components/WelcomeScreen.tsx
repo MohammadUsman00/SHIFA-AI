@@ -1,0 +1,294 @@
+"use client";
+
+import { useState } from "react";
+import {
+  Activity,
+  ArrowRight,
+  Zap,
+  ScanLine,
+  Languages,
+  Sun,
+  Moon,
+  Globe,
+  ShieldCheck,
+  Sparkles,
+  Stethoscope,
+} from "lucide-react";
+import { useLang } from "./providers/LanguageProvider";
+import { useTheme } from "./providers/ThemeProvider";
+
+interface Props {
+  onEnter: (name: string) => void;
+}
+
+export default function WelcomeScreen({ onEnter }: Props) {
+  const [name, setName] = useState("");
+  const { tr, lang, toggle: toggleLang } = useLang();
+  const { theme, toggle: toggleTheme } = useTheme();
+  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
+  const introClass = lang === "ur" ? "urdu-ui" : "";
+  const titleClass = lang === "ur" ? "urdu-title" : "";
+
+  const highlights = [
+    { icon: Zap, text: tr.feature1Title, sub: tr.feature1Desc },
+    { icon: ScanLine, text: tr.feature2Title, sub: tr.feature2Desc },
+    { icon: Languages, text: tr.feature3Title, sub: tr.feature3Desc },
+  ];
+
+  const stats = [
+    { label: lang === "ur" ? "فوری سمجھ" : "Fast clarity", value: lang === "ur" ? "چند سیکنڈ" : "In seconds" },
+    { label: lang === "ur" ? "زبانیں" : "Languages", value: "Urdu + English" },
+    { label: lang === "ur" ? "تجربہ" : "Experience", value: lang === "ur" ? "صاف اور پروفیشنل" : "Clean and professional" },
+  ];
+
+  return (
+    <div className="noise relative min-h-screen overflow-x-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="hero-grid absolute inset-0 opacity-[0.18]" />
+        <div
+          className="absolute left-[-6%] top-[-8%] h-[360px] w-[360px] rounded-full animate-glow"
+          style={{
+            background: "radial-gradient(circle, color-mix(in srgb, var(--gradient-to) 26%, transparent) 0%, transparent 70%)",
+          }}
+        />
+        <div
+          className="absolute right-[-8%] top-[10%] h-[420px] w-[420px] rounded-full animate-drift"
+          style={{
+            background: "radial-gradient(circle, color-mix(in srgb, var(--gradient-from) 28%, transparent) 0%, transparent 72%)",
+          }}
+        />
+      </div>
+
+      <div className="absolute right-5 top-5 z-20 flex items-center gap-2 animate-in delay-4">
+        <button type="button" onClick={toggleLang} className="btn-ghost rounded-xl px-2.5 py-1.5 text-xs">
+          <Globe className="h-3.5 w-3.5" />
+          <span style={{ fontFamily: "var(--font-inter)" }}>{lang === "ur" ? "EN" : "UR"}</span>
+        </button>
+        <button type="button" onClick={toggleTheme} className="btn-ghost rounded-xl px-2 py-1.5">
+          {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+        </button>
+      </div>
+
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-8 pb-16 pt-16 sm:px-6 lg:px-8">
+        {/* Login first on small screens — was pushed below the fold */}
+        <div className="grid w-full flex-1 items-start gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:items-center lg:gap-12">
+          <section className="order-2 w-full max-w-xl justify-self-center lg:order-1 lg:max-w-none lg:justify-self-stretch">
+            <div className="glass-panel soft-shadow rounded-3xl p-6 sm:p-8 lg:rounded-[32px] lg:p-10">
+              <div className="mb-6 flex flex-wrap items-start gap-3 text-start">
+                <span
+                  className="pill"
+                  style={{ fontFamily: "var(--font-inter)", color: "var(--primary)" }}
+                >
+                  <Sparkles className="h-3 w-3" />
+                  {tr.trustNote}
+                </span>
+              </div>
+
+              <div className="mb-6 text-start">
+                <p
+                  className="mb-2 text-[11px] uppercase tracking-[0.24em]"
+                  style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}
+                >
+                  {tr.welcomeKicker}
+                </p>
+                <h1
+                  className={`text-3xl font-bold tracking-tight sm:text-4xl ${titleClass}`}
+                  style={{ color: "var(--text)", fontFamily: f }}
+                >
+                  {tr.welcomeTitle}
+                </h1>
+                <p
+                  className={`balanced-copy mt-4 max-w-xl text-base leading-relaxed sm:text-[17px] ${introClass}`}
+                  style={{ color: "var(--text-2)", fontFamily: f }}
+                >
+                  {tr.welcomeDesc}
+                </p>
+              </div>
+
+              <div className="mb-8 grid gap-3 sm:grid-cols-3">
+                {stats.map((item, index) => (
+                  <div
+                    key={item.label}
+                    className="animate-in rounded-2xl border p-4 text-start"
+                    style={{
+                      animationDelay: `${index * 80}ms`,
+                      borderColor: "var(--border)",
+                      background: "var(--surface-2)",
+                    }}
+                  >
+                    <p
+                      className="mb-2 text-[10px] uppercase tracking-[0.2em]"
+                      style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}
+                    >
+                      {item.label}
+                    </p>
+                    <p
+                      className={`text-sm font-semibold sm:text-[15px] ${lang === "ur" ? "urdu-ui" : ""}`}
+                      style={{ color: "var(--text)", fontFamily: f }}
+                    >
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="mb-8 rounded-2xl border p-5 text-start sm:p-6"
+                style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+              >
+                <div className="mb-4 flex items-start gap-3">
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+                    style={{ background: "var(--primary-subtle)" }}
+                  >
+                    <Stethoscope className="h-5 w-5" style={{ color: "var(--primary)" }} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className={`text-lg font-semibold ${titleClass}`} style={{ color: "var(--text)", fontFamily: f }}>
+                      {tr.welcomeIntroTitle}
+                    </p>
+                    <p
+                      className="mt-1 text-[12px] uppercase tracking-[0.2em]"
+                      style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}
+                      translate="no"
+                    >
+                      Shifa AI
+                    </p>
+                  </div>
+                </div>
+                <p
+                  className={`balanced-copy max-w-2xl text-sm leading-relaxed sm:text-[15px] ${introClass}`}
+                  style={{ color: "var(--text-2)", fontFamily: f }}
+                >
+                  {tr.welcomeIntroDesc}
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-3">
+                {highlights.map((item, i) => (
+                  <div
+                    key={item.text}
+                    className="animate-in rounded-2xl border p-4 text-start transition-transform duration-300 hover:-translate-y-0.5"
+                    style={{
+                      animationDelay: `${120 + i * 90}ms`,
+                      borderColor: "var(--border)",
+                      background: "var(--surface)",
+                    }}
+                  >
+                    <div
+                      className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl"
+                      style={{ background: "var(--primary-subtle)" }}
+                    >
+                      <item.icon className="h-4 w-4" style={{ color: "var(--primary)" }} />
+                    </div>
+                    <p className={`mb-1.5 text-sm font-semibold ${titleClass}`} style={{ color: "var(--text)", fontFamily: f }}>
+                      {item.text}
+                    </p>
+                    <p className={`text-[13px] leading-relaxed ${introClass}`} style={{ color: "var(--text-3)", fontFamily: f }}>
+                      {item.sub}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="mt-8 flex items-start gap-3 rounded-2xl border px-4 py-3 text-start"
+                style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}
+              >
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "var(--primary)" }} />
+                <p className={`text-sm leading-relaxed ${introClass}`} style={{ color: "var(--text-2)", fontFamily: f }}>
+                  {tr.heroDesc}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          <section className="order-1 w-full max-w-md justify-self-center lg:order-2 lg:max-w-none lg:justify-self-end">
+            <div className="glass-panel soft-shadow relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:sticky lg:top-24 lg:max-w-md lg:rounded-[32px]">
+              <div
+                className="absolute inset-x-0 top-0 h-[3px]"
+                style={{
+                  background: "linear-gradient(90deg, var(--gradient-from), var(--gradient-to), var(--gradient-from))",
+                  backgroundSize: "200% 100%",
+                  animation: "borderFlow 7s linear infinite",
+                }}
+              />
+
+              <div className="mb-6 text-center">
+                <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-lg" style={{ background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}>
+                  <Activity className="h-8 w-8" />
+                </div>
+                <p
+                  className="text-[11px] uppercase tracking-[0.28em]"
+                  style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}
+                >
+                  {tr.poweredBy}
+                </p>
+                {/* Latin lock + translation off — avoids "Shifa" → "Healing" in browser translate */}
+                <h2
+                  className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl"
+                  style={{ fontFamily: "var(--font-inter)", color: "var(--text)" }}
+                  translate="no"
+                >
+                  Shifa AI
+                </h2>
+                <p className={`mt-2 text-sm ${introClass}`} style={{ color: "var(--text-3)", fontFamily: f }}>
+                  {tr.tagline}
+                </p>
+              </div>
+
+              <div className="rounded-2xl border p-4 text-start" style={{ borderColor: "var(--border)", background: "var(--surface-2)" }}>
+                <label
+                  className="mb-2 block text-[11px] uppercase tracking-[0.2em]"
+                  style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}
+                >
+                  {lang === "ur" ? "پروفائل نام" : "Your name"}
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={tr.enterName}
+                  className={`input-field rounded-xl border text-start ${lang === "ur" ? "urdu-ui" : ""}`}
+                  style={{ fontFamily: f, background: "var(--surface)", borderColor: "var(--border)" }}
+                  onKeyDown={(e) => e.key === "Enter" && onEnter(name.trim() || "Guest")}
+                  autoComplete="name"
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onEnter(name.trim() || "Guest")}
+                className="btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-semibold shadow-lg transition-transform active:scale-[0.99]"
+                style={{
+                  fontFamily: f,
+                  background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))",
+                  color: "var(--primary-fg)",
+                  boxShadow: "0 12px 36px -16px var(--primary-glow)",
+                }}
+              >
+                {tr.getStarted}
+                <ArrowRight className="h-4 w-4" style={{ transform: lang === "ur" ? "scaleX(-1)" : "none" }} />
+              </button>
+
+              <div className="my-5 h-px w-full" style={{ background: "var(--border)" }} />
+
+              <div className="space-y-2 text-start text-[13px]" style={{ color: "var(--text-3)", fontFamily: f }}>
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "var(--primary)" }} />
+                  <span className={lang === "ur" ? "urdu-ui" : ""}>{tr.trustNote}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Languages className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "var(--primary)" }} />
+                  <span className={lang === "ur" ? "urdu-ui" : ""}>
+                    {lang === "ur" ? "اردو اور English دونوں میں رہنمائی" : "Guidance in Urdu and English"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
