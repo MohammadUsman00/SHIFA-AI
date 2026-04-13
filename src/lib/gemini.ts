@@ -1,6 +1,53 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, SchemaType, type ResponseSchema } from "@google/generative-ai";
+import type { PrescriptionAnalysisJson, BilingualField, MedicationStructured } from "@/types";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+
+const BILINGUAL_SCHEMA: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    en: { type: SchemaType.STRING, nullable: true },
+    ur: { type: SchemaType.STRING, nullable: true },
+  },
+  required: ["en", "ur"],
+};
+
+const MEDICATION_ITEM_SCHEMA: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    name: BILINGUAL_SCHEMA as ResponseSchema,
+    dosage: BILINGUAL_SCHEMA as ResponseSchema,
+    route: BILINGUAL_SCHEMA as ResponseSchema,
+    timing: BILINGUAL_SCHEMA as ResponseSchema,
+  },
+  required: ["name", "dosage", "route", "timing"],
+};
+
+const PRESCRIPTION_RESPONSE_SCHEMA: ResponseSchema = {
+  type: SchemaType.OBJECT,
+  properties: {
+    patient_name: { type: SchemaType.STRING, nullable: true },
+    medications: {
+      type: SchemaType.ARRAY,
+      items: MEDICATION_ITEM_SCHEMA as ResponseSchema,
+    },
+    safety_notes: {
+      type: SchemaType.ARRAY,
+      items: BILINGUAL_SCHEMA as ResponseSchema,
+    },
+  },
+  required: ["medications", "safety_notes"],
+};
+
+const PRESCRIPTION_JSON_SYSTEM = `You are 'Shifa AI', an expert medical assistant specializing in reading, transcribing, and translating handwritten and printed medical prescriptions.
+
+Your task is to analyze the provided prescription image and extract medication details, instructions, and general safety notes.
+
+CRITICAL CONSTRAINTS:
+1. Respond ONLY with valid JSON matching the response schema. No markdown, no prose outside JSON.
+2. Every output field must be bilingual: English ('en') and Urdu ('ur'). Use Arabic script for Urdu.
+3. If a detail is illegible or missing, use null for that language field — do not guess.
+4. Professional, cautious tone. No diagnostic advice.`;
 
 export type ResponseLang = "ur" | "en";
 
@@ -123,4 +170,89 @@ export async function analyzeImage(
     },
   ]);
   return result.response.text();
+}
+
+function normBi(v: unknown): BilingualField {
+  if (!v || typeof v !== "object") return { en: null, ur: null };
+  const o = v as Record<string, unknown>;
+  const en = o.en;
+  const ur = o.ur;
+  return {
+    en: typeof en === "string" ? en : en === null ? null : null,
+    ur: typeof ur === "string" ? ur : ur === null ? null : null,
+  };
+}
+
+function normMedication(v: unknown): MedicationStructured | null {
+  if (!v || typeof v !== "object") return null;
+  const o = v as Record<string, unknown>;
+  return {
+    name: normBi(o.name),
+    dosage: normBi(o.dosage),
+    route: normBi(o.route),
+    timing: normBi(o.timing),
+  };
+}
+
+/** Parse and normalize Gemini JSON output for prescription images. */
+export function parsePrescriptionAnalysisJson(raw: string): PrescriptionAnalysisJson | null {
+  const trimmed = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/m, "");
+  try {
+    const data = JSON.parse(trimmed) as unknown;
+    if (!data || typeof data !== "object") return null;
+    const o = data as Record<string, unknown>;
+    const patient =
+      typeof o.patient_name === "string"
+        ? o.patient_name
+        : o.patient_name === null
+          ? null
+          : null;
+    const medRaw = o.medications;
+    const medications = Array.isArray(medRaw)
+      ? medRaw.map(normMedication).filter((m): m is MedicationStructured => m !== null)
+      : [];
+    const notesRaw = o.safety_notes;
+    const safety_notes = Array.isArray(notesRaw)
+      ? notesRaw.map((n) => normBi(n)).filter((n) => n.en !== null || n.ur !== null)
+      : [];
+    return { patient_name: patient, medications, safety_notes };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Multimodal prescription read: returns strict bilingual JSON (Gemini JSON mode).
+ */
+export async function analyzePrescriptionImageStructured(
+  base64Image: string,
+  mimeType: string = "image/jpeg"
+): Promise<PrescriptionAnalysisJson> {
+  const imageData = base64Image.includes("base64,") ? base64Image.split("base64,")[1] : base64Image;
+
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction: PRESCRIPTION_JSON_SYSTEM,
+    generationConfig: {
+      temperature: 0.15,
+      maxOutputTokens: 8192,
+      responseMimeType: "application/json",
+      responseSchema: PRESCRIPTION_RESPONSE_SCHEMA,
+    },
+  });
+
+  const userPrompt =
+    "Analyze this prescription image. Extract patient name if visible, all medications with bilingual fields, and safety notes. Use null when unreadable.";
+
+  const result = await model.generateContent([
+    userPrompt,
+    { inlineData: { data: imageData, mimeType } },
+  ]);
+
+  const text = result.response.text();
+  const parsed = parsePrescriptionAnalysisJson(text);
+  if (!parsed) {
+    throw new Error("Invalid JSON from prescription analysis");
+  }
+  return parsed;
 }

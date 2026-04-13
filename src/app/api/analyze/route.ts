@@ -1,10 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeText, analyzeImage, type ResponseLang } from "@/lib/gemini";
+import {
+  analyzeText,
+  analyzeImage,
+  analyzePrescriptionImageStructured,
+  type ResponseLang,
+} from "@/lib/gemini";
 import {
   findFallbackMedicine,
   formatFallbackAsResponse,
 } from "@/lib/fallback-medicines";
-import { MedicineResult } from "@/types";
+import type { MedicineResult, PrescriptionAnalysisJson } from "@/types";
+
+function mapStructuredToMedicineResults(p: PrescriptionAnalysisJson): MedicineResult[] {
+  return p.medications.map((m, i) => {
+    const dosage = [m.dosage.en, m.dosage.ur].filter(Boolean).join(" — ");
+    const timing = [m.timing.en, m.timing.ur].filter(Boolean).join(" — ");
+    const route = [m.route.en, m.route.ur].filter(Boolean).join(" — ");
+    return {
+      name: m.name.en ?? m.name.ur ?? "",
+      nameUrdu: m.name.ur ?? m.name.en ?? "",
+      purpose: "",
+      dosage,
+      timing,
+      foodWarnings: "",
+      stopInstructions: "",
+      warnings: route,
+      rawResponse: `structured-med-${i}`,
+    };
+  });
+}
 
 function cleanMarkdown(text: string): string {
   return text
@@ -219,12 +243,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: err.badRequest }, { status: 400 });
     }
 
-    let rawText: string;
+    let rawText = "";
     let usedFallback = false;
+
+    let prescriptionAnalysis: PrescriptionAnalysisJson | undefined;
 
     try {
       if (image) {
-        rawText = await analyzeImage(image, "image/jpeg", lang);
+        try {
+          prescriptionAnalysis = await analyzePrescriptionImageStructured(image);
+          const medicines = mapStructuredToMedicineResults(prescriptionAnalysis);
+          return NextResponse.json({
+            medicines,
+            rawText: JSON.stringify(prescriptionAnalysis),
+            prescriptionSummary: prescriptionAnalysis.patient_name ?? undefined,
+            prescriptionAnalysis,
+            usedFallback: false,
+          });
+        } catch (structuredErr) {
+          console.warn("Structured prescription analysis failed, using legacy text format:", structuredErr);
+          rawText = await analyzeImage(image, "image/jpeg", lang);
+        }
       } else {
         rawText = await analyzeText(text, lang);
       }
@@ -258,6 +297,7 @@ export async function POST(request: NextRequest) {
       medicines,
       rawText,
       prescriptionSummary,
+      prescriptionAnalysis,
       usedFallback,
     });
   } catch (error) {

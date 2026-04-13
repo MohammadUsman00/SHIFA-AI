@@ -1,19 +1,73 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, Upload, X, FileImage, ArrowRight } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
 
-interface Props { onUpload: (base64: string) => void; isLoading: boolean; }
+interface Props {
+  onUpload: (base64: string) => void;
+  isLoading: boolean;
+  /** When true, image preview is not shown here (parent shows it in a bento center column). */
+  hidePreview?: boolean;
+  onPreviewChange?: (dataUrl: string | null) => void;
+}
 
-export default function PhotoUpload({ onUpload, isLoading }: Props) {
+export default function PhotoUpload({ onUpload, isLoading, hidePreview = false, onPreviewChange }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const { tr, lang, isRtl } = useLang();
   const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
 
-  const processFile = useCallback((file: File) => { if (!file.type.startsWith("image/")) return; const r = new FileReader(); r.onload = (e) => setPreview(e.target?.result as string); r.readAsDataURL(file); }, []);
+  const processFile = useCallback((file: File) => {
+    if (!file.type.startsWith("image/")) return;
+    const r = new FileReader();
+    r.onload = (e) => setPreview(e.target?.result as string);
+    r.readAsDataURL(file);
+  }, []);
+
+  const clearPreview = useCallback(() => {
+    setPreview(null);
+    if (ref.current) ref.current.value = "";
+    onPreviewChange?.(null);
+  }, [onPreviewChange]);
+
+  useEffect(() => {
+    onPreviewChange?.(preview);
+  }, [preview, onPreviewChange]);
+
+  if (preview && hidePreview) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
+          <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--text-2)", fontFamily: f }}>
+            <FileImage className="h-4 w-4 shrink-0 text-[var(--primary)]" />
+            <span>{tr.imageReady}</span>
+          </div>
+          <button
+            type="button"
+            onClick={clearPreview}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] transition-colors hover:bg-[var(--surface-3)]"
+            aria-label="Remove"
+          >
+            <X className="h-3.5 w-3.5" style={{ color: "var(--text-3)" }} />
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (preview && !isLoading) onUpload(preview);
+          }}
+          disabled={isLoading}
+          className="btn-primary w-full text-[13px] py-3 cursor-pointer"
+          style={{ fontFamily: f, background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}
+        >
+          {isLoading ? tr.analyzing : tr.analyzeBtn}
+          <ArrowRight className="w-3.5 h-3.5" style={{ transform: isRtl ? "scaleX(-1)" : "none" }} />
+        </button>
+      </div>
+    );
+  }
 
   if (preview) {
     return (
@@ -23,7 +77,7 @@ export default function PhotoUpload({ onUpload, isLoading }: Props) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={preview} alt="Prescription" className="max-w-full max-h-full object-contain rounded-lg" />
           </div>
-          <button onClick={() => { setPreview(null); if (ref.current) ref.current.value = ""; }} className="absolute top-3 left-3 w-7 h-7 flex items-center justify-center rounded-full cursor-pointer transition-colors" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
+          <button onClick={clearPreview} className="absolute top-3 left-3 w-7 h-7 flex items-center justify-center rounded-full cursor-pointer transition-colors" style={{ background: "var(--surface)", border: "1px solid var(--border)" }}>
             <X className="w-3.5 h-3.5" style={{ color: "var(--text-3)" }} />
           </button>
         </div>
@@ -32,7 +86,7 @@ export default function PhotoUpload({ onUpload, isLoading }: Props) {
             <FileImage className="w-4 h-4" />
             <span style={{ fontFamily: f }}>{tr.imageReady}</span>
           </div>
-          <button onClick={() => { if (preview && !isLoading) onUpload(preview); }} disabled={isLoading} className="btn-primary text-[13px] py-2 px-4 cursor-pointer" style={{ fontFamily: f, background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}>
+          <button type="button" onClick={() => { if (preview && !isLoading) onUpload(preview); }} disabled={isLoading} className="btn-primary text-[13px] py-2 px-4 cursor-pointer" style={{ fontFamily: f, background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}>
             {isLoading ? tr.analyzing : tr.analyzeBtn}
             <ArrowRight className="w-3.5 h-3.5" style={{ transform: isRtl ? "scaleX(-1)" : "none" }} />
           </button>

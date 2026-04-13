@@ -1,3 +1,23 @@
+/** Bilingual field from structured prescription JSON (Gemini). */
+export interface BilingualField {
+  en: string | null;
+  ur: string | null;
+}
+
+export interface MedicationStructured {
+  name: BilingualField;
+  dosage: BilingualField;
+  route: BilingualField;
+  timing: BilingualField;
+}
+
+/** Strict JSON shape for prescription image analysis. */
+export interface PrescriptionAnalysisJson {
+  patient_name: string | null;
+  medications: MedicationStructured[];
+  safety_notes: BilingualField[];
+}
+
 export interface MedicineResult {
   name: string;
   nameUrdu: string;
@@ -27,6 +47,8 @@ export interface AnalyzeResponse {
   medicines: MedicineResult[];
   rawText: string;
   prescriptionSummary?: string;
+  /** Present when image analysis returned structured JSON. */
+  prescriptionAnalysis?: PrescriptionAnalysisJson;
   error?: string;
 }
 

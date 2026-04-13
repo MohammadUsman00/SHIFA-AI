@@ -3,28 +3,37 @@
 import { useState, useCallback } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Keyboard, ScanLine, AlertCircle, Sparkles, ShieldCheck, Zap } from "lucide-react";
+import { AlertCircle, FileImage, Sparkles, ShieldCheck } from "lucide-react";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider, useLang } from "@/components/providers/LanguageProvider";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import Navbar from "@/components/Navbar";
+import LandingSections from "@/components/LandingSections";
+import FaqFooter from "@/components/FaqFooter";
 import MedicineInput from "@/components/MedicineInput";
 import PhotoUpload from "@/components/PhotoUpload";
 import ResultCard from "@/components/ResultCard";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import RecentQueries from "@/components/RecentQueries";
-import { MedicineResult, Source } from "@/types";
+import PrescriptionAnalysisDashboard from "@/components/prescription/PrescriptionAnalysisDashboard";
+import ShifaWorkspace from "@/components/prescription/ShifaWorkspace";
+import { MedicineResult, Source, type PrescriptionAnalysisJson } from "@/types";
 
 type Tab = "text" | "photo";
 
 function App() {
   const [userName, setUserName] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<Tab>("text");
+  const [activeTab, setActiveTab] = useState<Tab>("photo");
+  const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
+  const [previewLightbox, setPreviewLightbox] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<MedicineResult[]>([]);
   const [prescriptionSummary, setPrescriptionSummary] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastQuery, setLastQuery] = useState("");
+  const [prescriptionAnalysis, setPrescriptionAnalysis] = useState<PrescriptionAnalysisJson | null>(null);
+  const [rxImageUrl, setRxImageUrl] = useState<string | null>(null);
+  const [photoUploadKey, setPhotoUploadKey] = useState(0);
   const { tr, lang } = useLang();
   const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
 
@@ -39,7 +48,16 @@ function App() {
   }, []);
 
   const analyze = useCallback(async (input: { text?: string; image?: string }) => {
-    setIsLoading(true); setError(null); setResults([]); setPrescriptionSummary(null);
+    setIsLoading(true);
+    setError(null);
+    setResults([]);
+    setPrescriptionSummary(null);
+    setPrescriptionAnalysis(null);
+    if (input.text) {
+      setRxImageUrl(null);
+      setPreviewDataUrl(null);
+    }
+    if (input.image) setRxImageUrl(input.image);
     setLastQuery(input.text || (lang === "ur" ? "نسخے کی تصویر" : "Prescription"));
     try {
       const r = await fetch("/api/analyze", {
@@ -50,6 +68,7 @@ function App() {
       const d = await r.json();
       if (d.error) { setError(d.error); return; }
       setPrescriptionSummary(typeof d.prescriptionSummary === "string" && d.prescriptionSummary.trim() ? d.prescriptionSummary.trim() : null);
+      setPrescriptionAnalysis(d.prescriptionAnalysis ?? null);
       if (d.medicines?.length) {
         setResults(d.medicines);
         d.medicines.forEach((m: MedicineResult, i: number) => enrich(m, i));
@@ -61,156 +80,182 @@ function App() {
     finally { setIsLoading(false); }
   }, [enrich, saveQuery, tr, lang]);
 
+  const goScanAnother = useCallback(() => {
+    setPrescriptionAnalysis(null);
+    setRxImageUrl(null);
+    setPreviewDataUrl(null);
+    setResults([]);
+    setPrescriptionSummary(null);
+    setPhotoUploadKey((k) => k + 1);
+    setActiveTab("photo");
+    document.getElementById("assistant")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const goSearchMedicines = useCallback(() => {
+    setPrescriptionAnalysis(null);
+    setRxImageUrl(null);
+    setPreviewDataUrl(null);
+    setResults([]);
+    setPrescriptionSummary(null);
+    setActiveTab("text");
+    document.getElementById("assistant")?.scrollIntoView({ behavior: "smooth" });
+  }, []);
+
+  const onRecentSelect = useCallback(
+    (n: string) => {
+      setActiveTab("text");
+      analyze({ text: n });
+    },
+    [analyze]
+  );
+
   if (!userName) return <WelcomeScreen onEnter={(n) => setUserName(n)} />;
 
+  const showStructuredDashboard =
+    Boolean(prescriptionAnalysis && rxImageUrl && !isLoading && !error);
+
   return (
-    <div className="noise min-h-screen">
-      <Navbar userName={userName} onLogout={() => setUserName(null)} />
+    <div dir="ltr" className="noise min-h-screen">
+      <Navbar userName={userName} onLogout={() => setUserName(null)} showSectionLinks />
 
-      {/* Hero */}
-      <div className="relative px-5 pb-10 pt-10 sm:px-8">
-        <div className="mx-auto max-w-5xl animate-up rounded-[32px] border px-6 py-8 text-center sm:px-10 sm:py-10 glass-panel soft-shadow">
-          <div className="pointer-events-none absolute left-1/2 top-0 h-[260px] w-[560px] -translate-x-1/2 rounded-full" style={{ background: "radial-gradient(ellipse, var(--primary-glow) 0%, transparent 70%)", filter: "blur(72px)" }} />
+      <div className="mx-auto max-w-[1600px] space-y-10 px-4 pb-20 pt-4 sm:px-6 lg:px-8 lg:pt-8">
+        {isLoading && <LoadingSpinner />}
 
-          <div className="relative mb-7 flex flex-wrap items-center justify-center gap-3 animate-in">
-            <div className="flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[12px] font-medium" style={{ border: "1px solid rgba(45,212,191,0.2)", background: "var(--primary-ghost)", color: "var(--primary)", fontFamily: "var(--font-inter)" }}>
-              <div className="h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: "var(--primary)" }} />
-              <Zap className="h-3 w-3" />
-              {tr.poweredBy} + Exa Search
-            </div>
-            <div className="pill glass-panel border-0 text-[11px] tracking-[0.22em]" style={{ fontFamily: "var(--font-inter)", color: "var(--text-3)" }}>
-              {tr.appName}
-            </div>
+        {error && (
+          <div className="card p-5 flex items-start gap-3 animate-in" style={{ borderColor: "var(--danger)", borderLeftWidth: "3px" }}>
+            <AlertCircle className="w-[18px] h-[18px] flex-shrink-0 mt-0.5" style={{ color: "var(--danger)" }} />
+            <p className="text-[14px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>{error}</p>
           </div>
+        )}
 
-          <h1 className={`relative mb-4 text-[40px] font-black tracking-tight sm:text-[56px] md:text-[68px] ${lang === "ur" ? "urdu-title leading-[1.45]" : "leading-[1.02]"}`} style={{ fontFamily: lang === "en" ? "var(--font-inter)" : f }}>
-            {lang === "ur" ? (
-              <span className="gradient-text">{tr.heroTitle}</span>
-            ) : (
+        {showStructuredDashboard ? (
+          <div id="rx-dashboard" className="scroll-mt-24">
+            <PrescriptionAnalysisDashboard
+              userName={userName}
+              imageSrc={rxImageUrl!}
+              analysis={prescriptionAnalysis!}
+              onScanAnother={goScanAnother}
+              onSearchMedicines={goSearchMedicines}
+              activitySlot={
+                <div id="activity" className="scroll-mt-24">
+                  <RecentQueries onSelect={onRecentSelect} />
+                </div>
+              }
+            />
+          </div>
+        ) : (
+          <ShifaWorkspace
+            userName={userName}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            previewDataUrl={previewDataUrl}
+            onOpenPreview={previewDataUrl ? () => setPreviewLightbox(true) : undefined}
+            onScanAnother={goScanAnother}
+            onSearchMedicines={goSearchMedicines}
+            leftSlot={
               <>
-                <span className="gradient-text">Understand</span>
-                <br />
-                <span style={{ color: "var(--text)" }}>every prescription.</span>
+                {activeTab === "text" ? (
+                  <MedicineInput onSubmit={(t) => analyze({ text: t })} isLoading={isLoading} />
+                ) : (
+                  <PhotoUpload
+                    key={photoUploadKey}
+                    hidePreview
+                    onPreviewChange={setPreviewDataUrl}
+                    onUpload={(img) => analyze({ image: img })}
+                    isLoading={isLoading}
+                  />
+                )}
+                {results.length > 0 && !prescriptionAnalysis && (
+                  <div className="custom-scrollbar max-h-[min(50vh,480px)] space-y-4 overflow-y-auto pr-1 pt-2">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" style={{ color: "var(--primary)" }} />
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>
+                        {tr.resultsFor} &ldquo;{lastQuery}&rdquo; — {results.length} {tr.medicines}
+                      </p>
+                    </div>
+                    {prescriptionSummary && (
+                      <div
+                        className="card animate-in border-2 p-4 sm:p-5"
+                        style={{ borderColor: "var(--border)", borderLeftWidth: "4px", borderLeftColor: "var(--primary)", background: "var(--surface-2)" }}
+                      >
+                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--primary)", fontFamily: "var(--font-inter)" }}>
+                          {tr.prescriptionSummaryTitle}
+                        </p>
+                        <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>
+                          {prescriptionSummary}
+                        </p>
+                        <p className="mt-2 text-[10px]" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>
+                          {tr.prescriptionSummaryHint}
+                        </p>
+                      </div>
+                    )}
+                    {results.map((m, i) => (
+                      <ResultCard key={i} medicine={m} index={i} />
+                    ))}
+                    <div className="border-t border-[var(--border)] pt-4 text-center">
+                      <p className="text-[11px] leading-relaxed text-[var(--text-4)]" style={{ fontFamily: f }}>{tr.disclaimer}</p>
+                    </div>
+                  </div>
+                )}
               </>
-            )}
-          </h1>
-
-          <p className={`relative mx-auto mb-10 max-w-2xl text-[16px] sm:text-[18px] ${lang === "ur" ? "urdu-ui" : "leading-relaxed"}`} style={{ color: "var(--text-3)", fontFamily: lang === "ur" ? f : "var(--font-inter)" }}>
-            {tr.heroDesc}
-          </p>
-
-          <div className="relative mb-8 animate-in delay-2">
-            <div className="inline-flex gap-1 rounded-2xl p-1.5 glass-panel">
-            {(["text", "photo"] as Tab[]).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className="flex items-center gap-2 px-4 py-2 rounded-[10px] text-[13px] font-medium transition-all duration-150 cursor-pointer"
-                style={{
-                  fontFamily: "var(--font-inter)",
-                  background: activeTab === tab ? "var(--surface)" : "transparent",
-                  color: activeTab === tab ? "var(--text)" : "var(--text-4)",
-                  boxShadow: activeTab === tab ? "0 14px 32px -24px rgba(15, 23, 42, 0.7)" : "none",
-                  border: activeTab === tab ? "1px solid var(--border)" : "1px solid transparent",
-                }}
-              >
-                {tab === "text" ? <Keyboard className="w-3.5 h-3.5" /> : <ScanLine className="w-3.5 h-3.5" />}
-                {tab === "text" ? tr.tabText : tr.tabPhoto}
-              </button>
-            ))}
-            </div>
-          </div>
-
-          <div className="relative mx-auto w-full max-w-2xl animate-up delay-2">
-            {activeTab === "text" ? (
-              <MedicineInput onSubmit={(t) => analyze({ text: t })} isLoading={isLoading} />
-            ) : (
-              <PhotoUpload onUpload={(img) => analyze({ image: img })} isLoading={isLoading} />
-            )}
-          </div>
-
-          <div className="relative mt-8 grid gap-3 text-left sm:grid-cols-3">
-            {[
-              { icon: Zap, title: lang === "ur" ? "فوری جواب" : "Fast answers", copy: lang === "ur" ? "چند لمحوں میں سمجھنے والی رہنمائی" : "Actionable guidance in moments" },
-              { icon: ShieldCheck, title: lang === "ur" ? "واضح معلومات" : "Clear explanations", copy: lang === "ur" ? "دواؤں کی ہدایات صاف انداز میں" : "Medicine instructions without confusion" },
-              { icon: Sparkles, title: lang === "ur" ? "بہتر تجربہ" : "Premium feel", copy: lang === "ur" ? "صاف لے آؤٹ اور بہتر پڑھائی" : "Professional UI with cleaner readability" },
-            ].map((item) => (
-              <div key={item.title} className="rounded-2xl border p-4 glass-panel">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-2xl" style={{ background: "var(--primary-subtle)" }}>
-                  <item.icon className="h-4 w-4" style={{ color: "var(--primary)" }} />
-                </div>
-                <p className={`mb-1 text-sm font-semibold ${lang === "ur" ? "urdu-title" : ""}`} style={{ color: "var(--text)", fontFamily: f }}>{item.title}</p>
-                <p className={`text-[13px] ${lang === "ur" ? "urdu-ui" : ""}`} style={{ color: "var(--text-3)", fontFamily: f }}>{item.copy}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-12">
-          {/* Main */}
-          <div className="space-y-8">
-
-            {/* Loading */}
-            {isLoading && <LoadingSpinner />}
-
-            {/* Error */}
-            {error && (
-              <div className="card p-5 flex items-start gap-3 animate-in" style={{ borderColor: "var(--danger)", borderLeftWidth: "3px" }}>
-                <AlertCircle className="w-[18px] h-[18px] flex-shrink-0 mt-0.5" style={{ color: "var(--danger)" }} />
-                <p className="text-[14px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>{error}</p>
-              </div>
-            )}
-
-            {/* Results */}
-            {results.length > 0 && !isLoading && (
-              <div className="space-y-5">
-                <div className="flex items-center gap-2 animate-in">
-                  <Sparkles className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                  <p className="text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>
-                    {tr.resultsFor} &ldquo;{lastQuery}&rdquo; — {results.length} {tr.medicines}
-                  </p>
-                </div>
-                {prescriptionSummary && (
-                  <div
-                    className="card animate-in border-2 p-5 sm:p-6"
-                    style={{ borderColor: "var(--border)", borderLeftWidth: "4px", borderLeftColor: "var(--primary)", background: "var(--surface-2)" }}
+            }
+            centerSlot={
+              <>
+                {activeTab === "photo" && previewDataUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setPreviewLightbox(true)}
+                    className="flex w-full flex-1 cursor-zoom-in flex-col items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)] p-2"
                   >
-                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--primary)", fontFamily: "var(--font-inter)" }}>
-                      {tr.prescriptionSummaryTitle}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={previewDataUrl} alt="" className="max-h-[min(50vh,360px)] w-full object-contain" />
+                  </button>
+                ) : activeTab === "photo" ? (
+                  <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/40 p-8 text-center lg:min-h-[280px]">
+                    <FileImage className="h-14 w-14 text-[var(--primary)]/50" />
+                    <p className="text-[13px] leading-relaxed text-[var(--text-4)]" style={{ fontFamily: f }}>
+                      {tr.workspaceCenterHint}
                     </p>
-                    <p className="mb-2 text-[14px] leading-relaxed sm:text-[15px]" style={{ color: "var(--text-2)", fontFamily: f }}>
-                      {prescriptionSummary}
-                    </p>
-                    <p className="text-[11px] leading-snug" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>
-                      {tr.prescriptionSummaryHint}
+                  </div>
+                ) : (
+                  <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/30 p-6 text-center lg:min-h-[280px]">
+                    <p className="text-[13px] leading-relaxed text-[var(--text-3)]" style={{ fontFamily: f }}>
+                      {tr.workspaceTextCenterHint}
                     </p>
                   </div>
                 )}
-                {results.map((m, i) => <ResultCard key={i} medicine={m} index={i} />)}
+              </>
+            }
+            rightSlot={
+              <div id="activity" className="scroll-mt-24">
+                <RecentQueries onSelect={onRecentSelect} />
               </div>
-            )}
+            }
+          />
+        )}
 
-            {/* Disclaimer */}
-            {results.length > 0 && (
-              <div className="text-center py-8 animate-in" style={{ borderTop: "1px solid var(--border)" }}>
-                <div className="inline-flex items-center gap-1.5 mb-1.5">
-                  <ShieldCheck className="w-3 h-3" style={{ color: "var(--text-4)" }} />
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em]" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>Medical Disclaimer</span>
-                </div>
-                <p className="text-[12px] leading-relaxed max-w-md mx-auto" style={{ color: "var(--text-4)", fontFamily: f }}>{tr.disclaimer}</p>
-              </div>
-            )}
-          </div>
+        {previewLightbox && previewDataUrl ? (
+          <button
+            type="button"
+            className="fixed inset-0 z-[10050] flex cursor-default items-center justify-center border-0 bg-black/85 p-4 backdrop-blur-sm"
+            onClick={() => setPreviewLightbox(false)}
+            aria-label="Close"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={previewDataUrl}
+              alt=""
+              className="max-h-[90vh] max-w-full cursor-zoom-out object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </button>
+        ) : null}
 
-          {/* Sidebar */}
-          <aside className="hidden lg:block animate-in delay-3">
-            <div className="sticky top-20">
-              <RecentQueries onSelect={(n) => { setActiveTab("text"); analyze({ text: n }); }} />
-            </div>
-          </aside>
-        </div>
+        <section id="about-marketing" className="scroll-mt-24 space-y-10 pt-6">
+          <LandingSections />
+        </section>
+
+        <FaqFooter />
       </div>
     </div>
   );

@@ -12,6 +12,7 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-inter)", "system-ui", "sans-serif"],
         urdu: ["var(--font-urdu)", "serif"],
+        "urdu-nastaliq": ["var(--font-urdu-nastaliq)", "var(--font-urdu)", "serif"],
       },
     },
   },

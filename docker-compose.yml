@@ -1,0 +1,16 @@
+services:
+  shifa-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Required at build time for client-side Convex URL embedding
+        NEXT_PUBLIC_CONVEX_URL: ${NEXT_PUBLIC_CONVEX_URL:-}
+    ports:
+      - "3000:3000"
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      EXA_API_KEY: ${EXA_API_KEY:-}
+      APIFY_API_TOKEN: ${APIFY_API_TOKEN:-}
+      NEXT_PUBLIC_CONVEX_URL: ${NEXT_PUBLIC_CONVEX_URL:-}
+    restart: unless-stopped
