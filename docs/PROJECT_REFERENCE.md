@@ -29,6 +29,8 @@ It is **not** a regulated medical device, **not** a replacement for a doctor, an
 
 ### 2.2 API: `POST /api/analyze`
 
+**Rate limiting:** All inference POST routes (`/api/analyze`, `/api/enrich`, `/api/scrape`) call `enforceApiRateLimit` first. Excess traffic returns **429** with `{ code: "RATE_LIMITED" }`. Configure **Upstash Redis** in production (see `docs/PRODUCTION.md`); otherwise an in-process limiter applies per Node instance only.
+
 **Body:** `{ text?: string, image?: string (data URL), lang?: "ur" | "en" | "hi" }` — require **either** `text` **or** `image`.
 
 **Text path**

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { scrapeCDSCO } from "@/lib/apify";
 import { findFallbackMedicine } from "@/lib/fallback-medicines";
+import { enforceApiRateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
   try {
+    const limited = await enforceApiRateLimit(request, "scrape");
+    if (limited) return limited;
+
     const { medicineName } = await request.json();
 
     if (!medicineName) {

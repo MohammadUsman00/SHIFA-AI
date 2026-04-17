@@ -32,7 +32,25 @@ export default function RecentQueries({ onSelect }: Props) {
       </div>
 
       {/* Body */}
-      {!queries || queries.length === 0 ? (
+      {queries === undefined ? (
+        <div className="space-y-0 px-4 py-6">
+          <p className="mb-4 text-center text-[12px] text-[var(--text-4)]" style={{ fontFamily: f }}>
+            {tr.recentQueriesLoading}
+          </p>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex animate-pulse items-center gap-3 border-b border-[var(--border)]/50 py-3 last:border-0"
+            >
+              <div className="h-8 w-8 shrink-0 rounded-lg bg-[var(--surface-2)]" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3.5 rounded bg-[var(--surface-2)]" style={{ width: `${68 + (i % 3) * 8}%` }} />
+                <div className="h-2.5 w-16 rounded bg-[var(--surface-2)]/80" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : queries.length === 0 ? (
         <div className="py-10 text-center px-5">
           <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: "var(--surface-2)" }}>
             <Clock className="w-4 h-4" style={{ color: "var(--text-4)" }} />

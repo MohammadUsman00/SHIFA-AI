@@ -107,6 +107,10 @@ export const t = {
     workspaceLeftTitle: "آپ کا ٹول",
     workspaceCenterHint: "بائیں سے تصویر منتخب کریں — یہاں پیش نظارہ نظر آئے گا۔",
     workspaceTextCenterHint: "دوا کا نام بائیں میں لکھیں؛ نتائج نیچے دکھائی دیں گے۔",
+    convexBanner:
+      "Convex کنفیگر نہیں۔ حالیہ تلاشیں اور تاریخ محفوظ کرنے کے لیے .env.local میں NEXT_PUBLIC_CONVEX_URL سیٹ کریں۔",
+    convexRecentDisabled: "Convex کے بغیر حالیہ تلاشیں دستیاب نہیں۔",
+    recentQueriesLoading: "لوڈ ہو رہا ہے…",
   },
   en: {
     appName: "Shifa AI",
@@ -214,6 +218,10 @@ export const t = {
     workspaceLeftTitle: "Your tools",
     workspaceCenterHint: "Choose an image on the left — preview appears here.",
     workspaceTextCenterHint: "Type a medicine name on the left — results appear below.",
+    convexBanner:
+      "Convex is not configured. Set NEXT_PUBLIC_CONVEX_URL in .env.local to enable recent queries and saved history.",
+    convexRecentDisabled: "Recent queries require Convex.",
+    recentQueriesLoading: "Loading…",
   },
   hi: {
     appName: "Shifa AI",
@@ -328,5 +336,9 @@ export const t = {
     workspaceLeftTitle: "आपके टूल",
     workspaceCenterHint: "बाएँ से छवि चुनें — यहाँ पूर्वावलोकन दिखेगा।",
     workspaceTextCenterHint: "बाएँ में दवा का नाम लिखें — परिणाम नीचे दिखेंगे।",
+    convexBanner:
+      "Convex कॉन्फ़िगर नहीं है। हाल की खोजें और इतिहास के लिए .env.local में NEXT_PUBLIC_CONVEX_URL सेट करें।",
+    convexRecentDisabled: "Convex के बिना हाल की खोजें उपलब्ध नहीं।",
+    recentQueriesLoading: "लोड हो रहा है…",
   },
 } as const;

@@ -24,6 +24,8 @@
   <a href="#product-screenshots">Screenshots</a> ·
   <a href="#tech-stack">Tech stack</a> ·
   <a href="#deployment-vercel">Vercel</a> ·
+  <a href="#quality-assurance--automated-testing">QA &amp; testing</a> ·
+  <a href="#production-operations--hardening">Production &amp; hardening</a> ·
   <a href="#getting-started-local">Local setup</a> ·
   <a href="#docker">Docker</a>
 </p>
@@ -88,6 +90,8 @@ Representative UI captures in the Shifa visual language (dark theme, teal accent
 | **AI** | `@google/generative-ai` (Gemini 2.5 Flash) | Medicine Q&A, vision, structured prescription JSON |
 | **Search / automation** | `exa-js`, `apify-client` | Optional enrichment (`/api/enrich`) and scraping (`/api/scrape`) |
 | **Realtime data** | Convex | `queries` table, `saveQuery` / `getRecentQueries` |
+| **Rate limiting** | `@upstash/ratelimit` + `@upstash/redis` (optional) + in-memory fallback | Protects API routes; Upstash recommended on Vercel |
+| **Testing** | Vitest | Unit tests for parsers, i18n, fallbacks, rate limit |
 | **Runtime** | Node.js | API routes; Docker uses Next **standalone** output |
 
 ### Architecture (high level)
@@ -140,7 +144,11 @@ flowchart TB
 | Check | Command / note |
 |-------|----------------|
 | Lint | `npm run lint` — ESLint `next/core-web-vitals` |
+| Unit tests | `npm run test` — Vitest (`src/**/*.test.ts`) |
+| Full CI pipeline | `npm run ci` — lint → test → build |
 | Production build | `npm run build` — typecheck + static analysis |
+
+Continuous integration runs on **push and pull requests** to `main` / `master` via [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 **Feature checks (need valid env):**
 
@@ -152,6 +160,24 @@ flowchart TB
 | Scraping | `APIFY_API_TOKEN` (optional) |
 
 If you see **missing chunk** errors (e.g. `./682.js`), run `npm run clean` then `npm run dev` or `npm run dev:clean` — stale `.next` on synced folders (e.g. OneDrive) can cause this.
+
+---
+
+## Quality assurance & automated testing
+
+Shipping a health-adjacent product without a disciplined test story is how teams learn about regressions from users instead of from CI. This repository takes a **pragmatic** line: we **automate what is deterministic**—fallback medicine formatting, i18n helpers, and rate-limit behaviour—so that refactors to parsers and API wiring do not silently break contracts. We **do not** pretend to unit-test Gemini itself; model output remains probabilistic and must still be reviewed in context for your audience.
+
+Vitest runs in Node with no browser harness, which keeps the suite fast and suitable for every pull request. What remains **manual** by design: smoke-testing text and image flows against real keys after deployment, and periodic review of prompts when you change models or parameters. That division—machines for invariants, humans for clinical and UX judgment—is how mature teams stay fast without fooling themselves.
+
+---
+
+## Production operations & hardening
+
+A system that is “feature-complete” but unprotected in production is not ready for public traffic. **Rate limiting** on `/api/analyze`, `/api/enrich`, and `/api/scrape` guards against accidental cost spikes and casual abuse. When `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` are set, limits are **distributed** via Upstash (appropriate for Vercel’s many isolates). Without Redis, an **in-process** limiter still helps single-container Docker or local runs; it is **not** a substitute for shared state across serverless instances—configure Upstash before you scale.
+
+**Security headers** (frame options, MIME sniffing, referrer policy, permissions policy) are applied globally in `next.config.mjs`. **Observability** is left to your platform: Vercel logs and analytics, Convex dashboards, and billing alerts on Gemini and third-party APIs. **Retention and compliance** for prescription imagery are organizational choices; the codebase avoids storing images by default, but your policies and disclosures should match your jurisdiction.
+
+For runbooks, tuning knobs, and a longer view on incidents and data stewardship, see **[`docs/PRODUCTION.md`](docs/PRODUCTION.md)**.
 
 ---
 
@@ -167,6 +193,7 @@ If you see **missing chunk** errors (e.g. `./682.js`), run `npm run clean` then 
    | `NEXT_PUBLIC_CONVEX_URL` | Yes for live queries | From `npx convex deploy` production deployment |
    | `EXA_API_KEY` | No | Only if you use `/api/enrich` |
    | `APIFY_API_TOKEN` | No | Only if you use `/api/scrape` |
+   | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Recommended for production rate limits | See [`docs/PRODUCTION.md`](docs/PRODUCTION.md) |
 
 4. **Convex:** Deploy backend once: `npx convex deploy`, then paste the **production** deployment URL into `NEXT_PUBLIC_CONVEX_URL`.  
 5. **Smoke test** after deploy: open the site, run a **text** medicine query and (if possible) a **prescription image**; confirm recent queries update if Convex is set.
@@ -223,6 +250,9 @@ Open **http://localhost:3000**.
 | `npm run build:clean` | Clean + build |
 | `npm run start` | Production server (after `build`) |
 | `npm run lint` | ESLint |
+| `npm run test` | Vitest unit tests |
+| `npm run test:watch` | Vitest watch mode |
+| `npm run ci` | Lint + test + build (same as CI) |
 
 ---
 

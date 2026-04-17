@@ -10,6 +10,7 @@ import {
   formatFallbackAsResponse,
 } from "@/lib/fallback-medicines";
 import type { MedicineResult, PrescriptionAnalysisJson } from "@/types";
+import { enforceApiRateLimit } from "@/lib/rate-limit";
 
 function mapStructuredToMedicineResults(p: PrescriptionAnalysisJson): MedicineResult[] {
   return p.medications.map((m, i) => {
@@ -280,6 +281,9 @@ function errorMessages(lang: ResponseLang) {
 export async function POST(request: NextRequest) {
   let lang: ResponseLang = "ur";
   try {
+    const limited = await enforceApiRateLimit(request, "analyze");
+    if (limited) return limited;
+
     const body = await request.json();
     const { text, image, lang: rawLang } = body;
     lang =

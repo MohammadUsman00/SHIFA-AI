@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Noto_Sans_Devanagari, Inter } from "next/font/google";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
 import "./globals.css";
 
 const urduFont = Noto_Naskh_Arabic({
@@ -43,9 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`dark scroll-smooth ${urduFont.variable} ${urduNastaliq.variable} ${hindiFont.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
-      <body className="font-sans antialiased">
-        <ConvexClientProvider>{children}</ConvexClientProvider>
-      </body>
+      <body className="font-sans antialiased">{children}</body>
     </html>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, type ReactNode } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { AlertCircle, FileImage, Sparkles, ShieldCheck } from "lucide-react";
+import { AlertCircle, FileImage, Sparkles } from "lucide-react";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider, useLang } from "@/components/providers/LanguageProvider";
 import WelcomeScreen from "@/components/WelcomeScreen";
@@ -15,6 +15,9 @@ import PhotoUpload from "@/components/PhotoUpload";
 import ResultCard from "@/components/ResultCard";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import RecentQueries from "@/components/RecentQueries";
+import RecentQueriesDisabled from "@/components/RecentQueriesDisabled";
+import ConvexMissingBanner from "@/components/ConvexMissingBanner";
+import ConvexClientProvider from "@/components/ConvexClientProvider";
 import PrescriptionAnalysisDashboard from "@/components/prescription/PrescriptionAnalysisDashboard";
 import ShifaWorkspace from "@/components/prescription/ShifaWorkspace";
 import { MedicineResult, Source, type PrescriptionAnalysisJson } from "@/types";
@@ -22,7 +25,22 @@ import { bodyFontVar } from "@/lib/lang-ui";
 
 type Tab = "text" | "photo";
 
-function App() {
+type SaveQueryArgs = {
+  medicineName: string;
+  inputType: "text" | "image";
+  response: string;
+  sources?: string[];
+};
+
+function App({
+  saveQuery,
+  renderRecentQueries,
+  showConvexBanner,
+}: {
+  saveQuery: (args: SaveQueryArgs) => Promise<void>;
+  renderRecentQueries: (onSelect: (name: string) => void) => ReactNode;
+  showConvexBanner?: boolean;
+}) {
   const [userName, setUserName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("photo");
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
@@ -37,8 +55,6 @@ function App() {
   const [photoUploadKey, setPhotoUploadKey] = useState(0);
   const { tr, lang } = useLang();
   const f = bodyFontVar(lang);
-
-  const saveQuery = useMutation(api.mutations.saveQuery);
 
   const enrich = useCallback(async (med: MedicineResult, idx: number) => {
     try {
@@ -137,6 +153,8 @@ function App() {
       <Navbar userName={userName} onLogout={() => setUserName(null)} showSectionLinks />
 
       <div className="mx-auto max-w-[1600px] space-y-10 px-4 pb-20 pt-4 sm:px-6 lg:px-8 lg:pt-8">
+        {showConvexBanner && <ConvexMissingBanner />}
+
         {isLoading && <LoadingSpinner />}
 
         {error && (
@@ -156,7 +174,7 @@ function App() {
               onSearchMedicines={goSearchMedicines}
               activitySlot={
                 <div id="activity" className="scroll-mt-24">
-                  <RecentQueries onSelect={onRecentSelect} />
+                  {renderRecentQueries(onRecentSelect)}
                 </div>
               }
             />
@@ -246,7 +264,7 @@ function App() {
             }
             rightSlot={
               <div id="activity" className="scroll-mt-24">
-                <RecentQueries onSelect={onRecentSelect} />
+                {renderRecentQueries(onRecentSelect)}
               </div>
             }
           />
@@ -279,11 +297,47 @@ function App() {
   );
 }
 
+function AppWithConvex() {
+  const saveQueryMutation = useMutation(api.mutations.saveQuery);
+  const saveQuery = useCallback(
+    async (args: SaveQueryArgs) => {
+      await saveQueryMutation(args);
+    },
+    [saveQueryMutation]
+  );
+  return (
+    <App
+      saveQuery={saveQuery}
+      renderRecentQueries={(onSelect) => <RecentQueries onSelect={onSelect} />}
+    />
+  );
+}
+
+function AppWithoutConvex() {
+  const saveQuery = useCallback(async (_args: SaveQueryArgs) => {
+    /* Convex not configured */
+  }, []);
+  return (
+    <App
+      saveQuery={saveQuery}
+      renderRecentQueries={() => <RecentQueriesDisabled />}
+      showConvexBanner
+    />
+  );
+}
+
 export default function Home() {
+  const hasConvex = Boolean(process.env.NEXT_PUBLIC_CONVEX_URL);
   return (
     <ThemeProvider>
       <LanguageProvider>
-        <App />
+        {hasConvex ? (
+          <ConvexClientProvider>
+            <AppWithConvex />
+          </ConvexClientProvider>
+        ) : (
+          <AppWithoutConvex />
+        )}
       </LanguageProvider>
     </ThemeProvider>
   );
