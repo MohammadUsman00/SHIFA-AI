@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Inter } from "next/font/google";
+import { Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Noto_Sans_Devanagari, Inter } from "next/font/google";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import "./globals.css";
 
@@ -17,6 +17,13 @@ const urduNastaliq = Noto_Nastaliq_Urdu({
   display: "swap",
 });
 
+const hindiFont = Noto_Sans_Devanagari({
+  subsets: ["devanagari"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-hindi",
+  display: "swap",
+});
+
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -25,7 +32,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Shifa AI — شفا اے آئی",
-  description: "Professional AI-powered prescription guidance in Urdu and English",
+  description: "Professional AI-powered prescription guidance in Urdu, English, and Hindi",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html
       lang="ur"
       translate="no"
-      className={`dark scroll-smooth ${urduFont.variable} ${urduNastaliq.variable} ${inter.variable}`}
+      className={`dark scroll-smooth ${urduFont.variable} ${urduNastaliq.variable} ${hindiFont.variable} ${inter.variable}`}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">

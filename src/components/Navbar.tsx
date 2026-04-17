@@ -1,8 +1,10 @@
 "use client";
 
-import { Activity, Sun, Moon, Globe, LogOut } from "lucide-react";
+import { Activity, Sun, Moon, LogOut } from "lucide-react";
 import { useTheme } from "./providers/ThemeProvider";
 import { useLang } from "./providers/LanguageProvider";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { bodyFontVar } from "@/lib/lang-ui";
 
 interface Props {
   userName: string;
@@ -16,7 +18,8 @@ const navLinkStyle = { color: "var(--text-3)", fontFamily: "var(--font-inter)" }
 
 export default function Navbar({ userName, onLogout, showSectionLinks }: Props) {
   const { theme, toggle: toggleTheme } = useTheme();
-  const { lang, toggle: toggleLang, tr } = useLang();
+  const { lang, tr } = useLang();
+  const titleFont = bodyFontVar(lang);
 
   return (
     <nav className="sticky top-0 z-50 animate-in" style={{ background: "color-mix(in srgb, var(--bg) 80%, transparent)", backdropFilter: "blur(16px) saturate(180%)", borderBottom: "1px solid var(--border)" }}>
@@ -27,7 +30,7 @@ export default function Navbar({ userName, onLogout, showSectionLinks }: Props) 
             <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}>
               <Activity className="w-[18px] h-[18px] text-white" />
             </div>
-            <span className="text-[15px] font-bold tracking-tight" style={{ color: "var(--text)", fontFamily: lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)" }}>
+            <span className="text-[15px] font-bold tracking-tight" style={{ color: "var(--text)", fontFamily: titleFont }}>
               {tr.appName}
             </span>
             <span className="hidden sm:inline-block text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 rounded-full" style={{ color: "var(--primary)", background: "var(--primary-subtle)", fontFamily: "var(--font-inter)" }}>
@@ -63,10 +66,7 @@ export default function Navbar({ userName, onLogout, showSectionLinks }: Props) 
 
           {/* Controls */}
           <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
-            <button onClick={toggleLang} className="btn-ghost text-[12px] px-2.5 py-1.5 rounded-lg" title={lang === "ur" ? "Switch to English" : "اردو میں تبدیل کریں"}>
-              <Globe className="w-3.5 h-3.5" />
-              <span style={{ fontFamily: "var(--font-inter)" }}>{lang === "ur" ? "EN" : "اردو"}</span>
-            </button>
+            <LanguageSwitcher />
 
             <button onClick={toggleTheme} className="btn-ghost px-2 py-1.5 rounded-lg" title={theme === "dark" ? "Light mode" : "Dark mode"}>
               {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}

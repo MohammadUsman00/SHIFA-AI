@@ -43,7 +43,10 @@ function extractField(section: string, labels: string[]): string {
   for (const label of labels) {
     const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const patterns = [
-      new RegExp(`${escaped}\\s*[:\\-]\\s*(.+?)(?=\\n[A-Za-z\u0600-\u06FF]|$)`, "ms"),
+      new RegExp(
+        `${escaped}\\s*[:\\-]\\s*(.+?)(?=\\n[A-Za-z\u0600-\u06FF\u0900-\u097F]|$)`,
+        "ms"
+      ),
       new RegExp(`${escaped}\\s*[:\\-]\\s*(.+?)(?=\\n|$)`, "m"),
     ];
     for (const regex of patterns) {
@@ -63,6 +66,15 @@ function splitPrescriptionSummary(
   if (lang === "ur") {
     const re =
       /نسخے\s*کا\s*خلاصہ\s*[:：]\s*([\s\S]+?)(?=\n\s*-{3,}\s*\n|\n\s*دوا\s*کا\s*نام\s*[:：])/i;
+    const m = cleaned.match(re);
+    if (m?.[1]?.trim()) {
+      let rest = cleaned.replace(re, "").trim();
+      rest = rest.replace(/^\s*-{3,}\s*\n?/, "").trim();
+      return { summary: m[1].trim(), rest };
+    }
+  } else if (lang === "hi") {
+    const re =
+      /नुस्खे\s*का\s*सारांश\s*[:：]\s*([\s\S]+?)(?=\n\s*-{3,}\s*\n|\n\s*दवा\s*का\s*नाम\s*[:：])/i;
     const m = cleaned.match(re);
     if (m?.[1]?.trim()) {
       let rest = cleaned.replace(re, "").trim();
@@ -101,15 +113,19 @@ function parseGeminiResponse(
 
   const nameLabelsUr = ["دوا کا نام"];
   const nameLabelsEn = ["Medicine name", "Drug name", "Medication name"];
+  const nameLabelsHi = ["दवा का नाम", "Medicine name"];
 
   const purposeLabelsUr = ["یہ کس لیے ہے", "کس لیے", "استعمال"];
   const purposeLabelsEn = ["What it's for", "What it treats", "Purpose"];
+  const purposeLabelsHi = ["यह किस लिए है", "किस लिए", "उपयोग"];
 
   const dosageLabelsUr = ["کتنی لینی ہے", "خوراک", "مقدار"];
   const dosageLabelsEn = ["Dosage", "Dose", "How much"];
+  const dosageLabelsHi = ["कितनी लेनी है", "खुराक", "मात्रा"];
 
   const timingLabelsUr = ["کب لینی ہے", "وقت", "کب لیں"];
   const timingLabelsEn = ["When to take", "Timing", "Schedule"];
+  const timingLabelsHi = ["कब लेनी है", "समय", "कब लें"];
 
   const foodLabelsUr = ["کھانے سے پرہیز", "پرہیز", "کھانے"];
   const foodLabelsEn = [
@@ -118,12 +134,15 @@ function parseGeminiResponse(
     "Food / drink",
     "Dietary cautions",
   ];
+  const foodLabelsHi = ["खान-पान में परहेज", "परहेज", "खाना"];
 
   const stopLabelsUr = ["کب بند کریں", "بند کریں", "دورانیہ"];
   const stopLabelsEn = ["When to stop", "Stopping"];
+  const stopLabelsHi = ["कब बंद करें", "बंद करें"];
 
   const warnLabelsUr = ["خبردار", "انتباہ", "⚠️", "خطرہ"];
   const warnLabelsEn = ["Warnings", "Warning", "Cautions", "Important"];
+  const warnLabelsHi = ["चेतावनी", "⚠️", "खतरा"];
 
   const results: MedicineResult[] = [];
 
@@ -131,7 +150,9 @@ function parseGeminiResponse(
     const rawName =
       lang === "ur"
         ? extractField(section, nameLabelsUr)
-        : extractField(section, nameLabelsEn);
+        : lang === "hi"
+          ? extractField(section, nameLabelsHi)
+          : extractField(section, nameLabelsEn);
 
     if (!rawName || rawName.length < 2) continue;
 
@@ -144,7 +165,7 @@ function parseGeminiResponse(
       const ur = rawName.replace(/\([^)]+\)/, "").trim();
       name = en || ur;
       nameUrduField = ur || rawName;
-    } else {
+    } else if (lang === "hi" || lang === "en") {
       const paren = rawName.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
       if (paren) {
         name = paren[1].trim();
@@ -158,27 +179,39 @@ function parseGeminiResponse(
     const purpose =
       lang === "ur"
         ? extractField(section, purposeLabelsUr)
-        : extractField(section, purposeLabelsEn);
+        : lang === "hi"
+          ? extractField(section, purposeLabelsHi)
+          : extractField(section, purposeLabelsEn);
     const dosage =
       lang === "ur"
         ? extractField(section, dosageLabelsUr)
-        : extractField(section, dosageLabelsEn);
+        : lang === "hi"
+          ? extractField(section, dosageLabelsHi)
+          : extractField(section, dosageLabelsEn);
     const timing =
       lang === "ur"
         ? extractField(section, timingLabelsUr)
-        : extractField(section, timingLabelsEn);
+        : lang === "hi"
+          ? extractField(section, timingLabelsHi)
+          : extractField(section, timingLabelsEn);
     const foodWarnings =
       lang === "ur"
         ? extractField(section, foodLabelsUr)
-        : extractField(section, foodLabelsEn);
+        : lang === "hi"
+          ? extractField(section, foodLabelsHi)
+          : extractField(section, foodLabelsEn);
     const stopInstructions =
       lang === "ur"
         ? extractField(section, stopLabelsUr)
-        : extractField(section, stopLabelsEn);
+        : lang === "hi"
+          ? extractField(section, stopLabelsHi)
+          : extractField(section, stopLabelsEn);
     const warnings =
       lang === "ur"
         ? extractField(section, warnLabelsUr)
-        : extractField(section, warnLabelsEn);
+        : lang === "hi"
+          ? extractField(section, warnLabelsHi)
+          : extractField(section, warnLabelsEn);
 
     results.push({
       name,
@@ -196,7 +229,12 @@ function parseGeminiResponse(
   if (results.length === 0 && body.length > 30) {
     results.push({
       name: "",
-      nameUrdu: lang === "ur" ? "دوا کی معلومات" : "Medicine information",
+      nameUrdu:
+        lang === "ur"
+          ? "دوا کی معلومات"
+          : lang === "hi"
+            ? "दवा की जानकारी"
+            : "Medicine information",
       purpose: "",
       dosage: "",
       timing: "",
@@ -215,19 +253,27 @@ function errorMessages(lang: ResponseLang) {
     badRequest:
       lang === "ur"
         ? "دوا کا نام یا تصویر دیں"
-        : "Please provide a medicine name or an image.",
+        : lang === "hi"
+          ? "कृपया दवा का नाम या तस्वीर भेजें।"
+          : "Please provide a medicine name or an image.",
     apiUnavailable: (name: string) =>
       lang === "ur"
         ? `"${name}" کی معلومات ابھی دستیاب نہیں۔ API سے رابطہ نہیں ہو سکا۔ انٹرنیٹ چیک کریں۔`
-        : `Information for "${name}" is not available right now. Could not reach the API. Check your connection.`,
+        : lang === "hi"
+          ? `"${name}" की जानकारी अभी उपलब्ध नहीं। API तक नहीं पहुँच सके। इंटरनेट जाँचें।`
+          : `Information for "${name}" is not available right now. Could not reach the API. Check your connection.`,
     imageError:
       lang === "ur"
         ? "تصویر پڑھنے میں مسئلہ ہوا۔ براہ کرم واضح تصویر دوبارہ اپلوڈ کریں۔"
-        : "Could not read the image. Please upload a clearer photo.",
+        : lang === "hi"
+          ? "तस्वीर नहीं पढ़ी जा सकी। कृपया स्पष्ट फोटो अपलोड करें।"
+          : "Could not read the image. Please upload a clearer photo.",
     server:
       lang === "ur"
         ? "سرور میں مسئلہ ہوا۔ براہ کرم دوبارہ کوشش کریں۔"
-        : "Something went wrong on the server. Please try again.",
+        : lang === "hi"
+          ? "सर्वर में समस्या हुई। कृपया फिर कोशिश करें।"
+          : "Something went wrong on the server. Please try again.",
   };
 }
 
@@ -236,7 +282,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { text, image, lang: rawLang } = body;
-    lang = rawLang === "en" ? "en" : "ur";
+    lang =
+      rawLang === "en" ? "en" : rawLang === "hi" ? "hi" : "ur";
     const err = errorMessages(lang);
 
     if (!text && !image) {

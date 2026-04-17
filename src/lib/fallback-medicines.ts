@@ -277,6 +277,15 @@ Food and drink cautions: ${med.foodWarnings}
 When to stop: ${med.stopInstructions}
 Warnings: ${med.warnings}`;
   }
+  if (lang === "hi") {
+    return `दवा का नाम: ${med.nameEn} (${med.nameUrdu})
+यह किस लिए है: ${med.purpose}
+कितनी लेनी है: ${med.dosage}
+कब लेनी है: ${med.timing}
+खान-पान में परहेज: ${med.foodWarnings}
+कब बंद करें: ${med.stopInstructions}
+चेतावनी: ${med.warnings}`;
+  }
   return `دوا کا نام: ${med.nameUrdu} (${med.nameEn})
 یہ کس لیے ہے: ${med.purpose}
 کتنی لینی ہے: ${med.dosage}

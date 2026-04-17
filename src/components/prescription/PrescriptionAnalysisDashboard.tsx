@@ -16,6 +16,7 @@ import type { PrescriptionAnalysisJson } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLang } from "@/components/providers/LanguageProvider";
+import { bodyFontVar } from "@/lib/lang-ui";
 
 interface Props {
   userName: string;
@@ -69,6 +70,7 @@ export default function PrescriptionAnalysisDashboard({
   activitySlot,
 }: Props) {
   const { tr, lang } = useLang();
+  const uiFont = bodyFontVar(lang);
   const [lightbox, setLightbox] = useState(false);
   const displayName = analysis.patient_name?.trim() || userName;
 
@@ -96,7 +98,7 @@ export default function PrescriptionAnalysisDashboard({
             </p>
             <h2
               className="text-lg font-bold tracking-tight text-[var(--text)] sm:text-xl"
-              style={{ fontFamily: lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)" }}
+              style={{ fontFamily: uiFont }}
             >
               {tr.dashboardRxTitle}: {displayName}
             </h2>
@@ -113,13 +115,17 @@ export default function PrescriptionAnalysisDashboard({
         {/* Left — medications */}
         <div className="flex flex-col xl:col-span-4">
           <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-4)]">
-            {lang === "ur" ? "دوائیں" : "Medications"}
+            {lang === "ur" ? "دوائیں" : lang === "hi" ? "दवाएं" : "Medications"}
           </p>
           <div className="custom-scrollbar max-h-[min(70vh,640px)] space-y-3 overflow-y-auto pr-1">
             {analysis.medications.length === 0 ? (
               <Card className="border-dashed">
                 <CardContent className="py-8 text-center text-sm text-[var(--text-4)]">
-                  {lang === "ur" ? "کوئی دوا نہیں ملی" : "No medications extracted"}
+                  {lang === "ur"
+                    ? "کوئی دوا نہیں ملی"
+                    : lang === "hi"
+                      ? "कोई दवा नहीं मिली"
+                      : "No medications extracted"}
                 </CardContent>
               </Card>
             ) : (
@@ -203,13 +209,17 @@ export default function PrescriptionAnalysisDashboard({
                 <ul className="space-y-2 text-[13px] leading-relaxed text-[var(--text-2)]">
                   {notes.length === 0 ? (
                     <li className="text-[var(--text-4)]">
-                      {lang === "ur" ? "کوئی اضافی نوٹ نہیں" : "No additional notes"}
+                      {lang === "ur"
+                        ? "کوئی اضافی نوٹ نہیں"
+                        : lang === "hi"
+                          ? "कोई अतिरिक्त नोट नहीं"
+                          : "No additional notes"}
                     </li>
                   ) : (
                     notes.map((n, i) => (
                       <li key={i} className="flex gap-2 border-l-2 border-[var(--primary)]/40 pl-3">
                         <span className="text-[var(--text)]">
-                          {lang === "ur" ? n.ur || n.en : n.en || n.ur}
+                          {lang === "ur" ? n.ur || n.en : lang === "hi" ? n.en || n.ur : n.en || n.ur}
                         </span>
                       </li>
                     ))
@@ -249,23 +259,28 @@ export default function PrescriptionAnalysisDashboard({
               </CardTitle>
             </CardHeader>
             <CardContent className="text-[13px] leading-relaxed text-[var(--text-3)]">
-              <p className="mb-3 font-[family-name:var(--font-urdu)]" dir={lang === "ur" ? "rtl" : "ltr"}>
+              <p
+                className={`mb-3 ${lang === "ur" ? "font-[family-name:var(--font-urdu)]" : lang === "hi" ? "font-hindi" : ""}`}
+                dir={lang === "ur" ? "rtl" : "ltr"}
+              >
                 {lang === "ur"
                   ? "شفا AI نسخے کو واضح اور پیشہ ورانہ انداز میں اردو اور انگریزی میں پڑھنے میں مدد کرتا ہے۔"
-                  : "Shifa AI helps you read prescriptions clearly and professionally in both Urdu and English."}
+                  : lang === "hi"
+                    ? "Shifa AI नुस्खे को हिंदी, उर्दू और अंग्रेजी में स्पष्ट रूप से पढ़ने में मदद करता है।"
+                    : "Shifa AI helps you read prescriptions clearly in Hindi, Urdu, and English."}
               </p>
               <ul className="space-y-1.5 text-[12px] text-[var(--text-4)]">
                 <li className="flex items-center gap-2">
                   <ChevronDown className="h-3 w-3 rotate-[-90deg] text-[var(--primary)]" />
-                  {lang === "ur" ? "فوری جواب" : "Quick response"}
+                  {lang === "ur" ? "فوری جواب" : lang === "hi" ? "तुरंत जवाब" : "Quick response"}
                 </li>
                 <li className="flex items-center gap-2">
                   <ChevronDown className="h-3 w-3 rotate-[-90deg] text-[var(--primary)]" />
-                  {lang === "ur" ? "واضح متن" : "Clear text"}
+                  {lang === "ur" ? "واضح متن" : lang === "hi" ? "स्पष्ट टेक्स्ट" : "Clear text"}
                 </li>
                 <li className="flex items-center gap-2">
                   <ChevronDown className="h-3 w-3 rotate-[-90deg] text-[var(--primary)]" />
-                  {lang === "ur" ? "مریض کی شناخت" : "Patient context"}
+                  {lang === "ur" ? "مریض کی شناخت" : lang === "hi" ? "मरीज़ का संदर्भ" : "Patient context"}
                 </li>
               </ul>
             </CardContent>
@@ -275,7 +290,7 @@ export default function PrescriptionAnalysisDashboard({
 
           <p
             className="rounded-2xl border border-[var(--border)] bg-[var(--surface-2)]/50 p-4 text-center text-[11px] leading-relaxed text-[var(--text-4)]"
-            style={{ fontFamily: lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)" }}
+            style={{ fontFamily: uiFont }}
           >
             {tr.dashboardFooterDisclaimer}
           </p>

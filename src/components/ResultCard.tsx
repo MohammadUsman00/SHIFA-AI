@@ -3,6 +3,7 @@
 import { Pill, Clock, Utensils, OctagonX, AlertTriangle } from "lucide-react";
 import { MedicineResult } from "@/types";
 import { useLang } from "./providers/LanguageProvider";
+import { bodyFontVar } from "@/lib/lang-ui";
 import WarningBadge from "./WarningBadge";
 import SourceBadge from "./SourceBadge";
 
@@ -10,9 +11,10 @@ interface Props { medicine: MedicineResult; index: number; }
 
 export default function ResultCard({ medicine, index }: Props) {
   const { tr, lang } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
+  const f = bodyFontVar(lang);
   const has = medicine.purpose || medicine.dosage || medicine.timing;
-  const mainTitle = lang === "ur" ? (medicine.nameUrdu || medicine.name) : (medicine.name || medicine.nameUrdu);
+  const mainTitle =
+    lang === "ur" ? medicine.nameUrdu || medicine.name : medicine.name || medicine.nameUrdu;
   const subTitle = lang === "ur" ? medicine.name : medicine.nameUrdu;
 
   const fields = [
@@ -28,11 +30,18 @@ export default function ResultCard({ medicine, index }: Props) {
       {/* Header */}
       <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
         <div>
-          <h3 className="text-[18px] font-bold leading-snug" style={{ color: "var(--text)", fontFamily: lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)" }}>
+          <h3 className="text-[18px] font-bold leading-snug" style={{ color: "var(--text)", fontFamily: f }}>
             {mainTitle || tr.medInfo}
           </h3>
           {subTitle && subTitle !== mainTitle && (
-            <p className="mt-1 text-[13px]" dir={lang === "ur" ? "ltr" : "auto"} style={{ color: "var(--text-4)", fontFamily: lang === "ur" ? "var(--font-inter)" : "var(--font-urdu)" }}>
+            <p
+              className="mt-1 text-[13px]"
+              dir={lang === "ur" ? "ltr" : "auto"}
+              style={{
+                color: "var(--text-4)",
+                fontFamily: lang === "ur" ? "var(--font-inter)" : "var(--font-urdu)",
+              }}
+            >
               {subTitle}
             </p>
           )}

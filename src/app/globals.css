@@ -314,6 +314,54 @@ html.dark .hero-grid {
   letter-spacing: -0.01em;
 }
 
+.hindi-ui {
+  font-family: var(--font-hindi);
+  line-height: 1.85;
+  letter-spacing: 0;
+}
+
+.hindi-title {
+  font-family: var(--font-hindi);
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+
+[data-lang="hi"] .result-val,
+[data-lang="hi"] .balanced-copy {
+  font-family: var(--font-hindi);
+}
+
+.lang-switcher {
+  display: flex;
+  align-items: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.lang-btn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  background: transparent;
+  color: var(--text-3);
+}
+
+.lang-btn.active {
+  background: var(--primary);
+  color: var(--primary-fg);
+}
+
+.lang-btn:not(.active):hover {
+  color: var(--text-2);
+}
+
 .balanced-copy {
   overflow-wrap: break-word;
 }

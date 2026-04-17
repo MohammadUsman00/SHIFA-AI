@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, Upload, X, FileImage, ArrowRight } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
+import { bodyFontVar } from "@/lib/lang-ui";
 
 interface Props {
   onUpload: (base64: string) => void;
@@ -17,7 +18,7 @@ export default function PhotoUpload({ onUpload, isLoading, hidePreview = false, 
   const [dragActive, setDragActive] = useState(false);
   const ref = useRef<HTMLInputElement>(null);
   const { tr, lang, isRtl } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
+  const f = bodyFontVar(lang);
 
   const processFile = useCallback((file: File) => {
     if (!file.type.startsWith("image/")) return;

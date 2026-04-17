@@ -18,6 +18,7 @@ import RecentQueries from "@/components/RecentQueries";
 import PrescriptionAnalysisDashboard from "@/components/prescription/PrescriptionAnalysisDashboard";
 import ShifaWorkspace from "@/components/prescription/ShifaWorkspace";
 import { MedicineResult, Source, type PrescriptionAnalysisJson } from "@/types";
+import { bodyFontVar } from "@/lib/lang-ui";
 
 type Tab = "text" | "photo";
 
@@ -35,7 +36,7 @@ function App() {
   const [rxImageUrl, setRxImageUrl] = useState<string | null>(null);
   const [photoUploadKey, setPhotoUploadKey] = useState(0);
   const { tr, lang } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
+  const f = bodyFontVar(lang);
 
   const saveQuery = useMutation(api.mutations.saveQuery);
 
@@ -58,7 +59,10 @@ function App() {
       setPreviewDataUrl(null);
     }
     if (input.image) setRxImageUrl(input.image);
-    setLastQuery(input.text || (lang === "ur" ? "نسخے کی تصویر" : "Prescription"));
+    setLastQuery(
+      input.text ||
+        (lang === "ur" ? "نسخے کی تصویر" : lang === "hi" ? "नुस्खे की तस्वीर" : "Prescription")
+    );
     try {
       const r = await fetch("/api/analyze", {
         method: "POST",
@@ -74,7 +78,21 @@ function App() {
         d.medicines.forEach((m: MedicineResult, i: number) => enrich(m, i));
         try { await saveQuery({ medicineName: input.text || d.medicines[0]?.name || "Rx", inputType: input.image ? "image" : "text", response: d.rawText || "", sources: [] }); } catch { /* */ }
       } else if (d.rawText) {
-        setResults([{ name: input.text || "", nameUrdu: input.text || (lang === "ur" ? "دوا" : "Medicine"), purpose: "", dosage: "", timing: "", foodWarnings: "", stopInstructions: "", warnings: "", rawResponse: d.rawText }]);
+        setResults([
+          {
+            name: input.text || "",
+            nameUrdu:
+              input.text ||
+              (lang === "ur" ? "دوا" : lang === "hi" ? "दवा" : "Medicine"),
+            purpose: "",
+            dosage: "",
+            timing: "",
+            foodWarnings: "",
+            stopInstructions: "",
+            warnings: "",
+            rawResponse: d.rawText,
+          },
+        ]);
       } else { setError(tr.noResults); }
     } catch { setError(tr.networkError); }
     finally { setIsLoading(false); }

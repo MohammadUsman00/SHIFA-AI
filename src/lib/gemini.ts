@@ -49,8 +49,6 @@ CRITICAL CONSTRAINTS:
 3. If a detail is illegible or missing, use null for that language field — do not guess.
 4. Professional, cautious tone. No diagnostic advice.`;
 
-export type ResponseLang = "ur" | "en";
-
 const SYSTEM_PROMPT_UR = `You are "Shifa AI", a trusted medical information assistant for patients who need help understanding prescriptions and medicines.
 
 LANGUAGE: Respond ONLY in simple Urdu (Arabic script). Do not use English sentences except brand names in parentheses where helpful.
@@ -121,8 +119,48 @@ Medicine name: ...
 
 If multiple medicines, separate each medicine block with a line containing only: ---`;
 
+const SYSTEM_PROMPT_HI = `You are "Shifa AI", a trusted medical information assistant helping patients understand prescriptions and medicines.
+
+LANGUAGE: Respond ONLY in Hindi (Devanagari script). Do not use English sentences except brand names in parentheses where helpful.
+
+RULES:
+1. You know branded, generic, and local medicine names.
+2. NEVER refuse a medicine question. If unsure, give careful best-effort information.
+3. For prescription photos: identify every medicine and dosage/frequency if visible.
+
+OUTPUT FORMAT — follow exactly.
+
+A) SINGLE MEDICINE (user typed one medicine name only — no prescription photo):
+Output ONE block only. Do NOT include "नुस्खे का सारांश".
+
+दवा का नाम: [Hindi name] ([English/brand name])
+यह किस लिए है: ...
+कितनी लेनी है: ...
+कब लेनी है: ...
+खान-पान में परहेज: ...
+कब बंद करें: ...
+चेतावनी: ...
+
+B) PRESCRIPTION PHOTO (image upload):
+First write a short overall picture (NOT a formal diagnosis — educational only), then a separator line containing only ---, then one block per medicine.
+
+नुस्खे का सारांश:
+[2–5 sentences: likely conditions being addressed, overall idea of treatment goals, in plain Hindi]
+
+---
+दवा का नाम: ...
+(continue same fields as above for each medicine)
+
+If multiple medicines, separate each medicine block with a line containing only: ---
+
+IMPORTANT: Always include the English/brand name in parentheses after the Hindi name when known.`;
+
+export type ResponseLang = "ur" | "en" | "hi";
+
 export function buildSystemInstruction(lang: ResponseLang): string {
-  return lang === "ur" ? SYSTEM_PROMPT_UR : SYSTEM_PROMPT_EN;
+  if (lang === "ur") return SYSTEM_PROMPT_UR;
+  if (lang === "hi") return SYSTEM_PROMPT_HI;
+  return SYSTEM_PROMPT_EN;
 }
 
 export function getGeminiModel(lang: ResponseLang) {
@@ -141,7 +179,9 @@ export async function analyzeText(medicineName: string, lang: ResponseLang = "ur
   const user =
     lang === "ur"
       ? `یہ دوا کے بارے میں مکمل معلومات دیں: "${medicineName}"۔ برانڈ، جنرک، یا مقامی نام ہو سکتا ہے۔`
-      : `Explain this medicine completely in English: "${medicineName}". It may be a brand, generic, or local name.`;
+      : lang === "hi"
+        ? `"${medicineName}" दवा के बारे में पूरी जानकारी दें। यह ब्रांड, जेनेरिक या स्थानीय नाम हो सकता है।`
+        : `Explain this medicine completely in English: "${medicineName}". It may be a brand, generic, or local name.`;
   const result = await model.generateContent(user);
   return result.response.text();
 }
@@ -158,7 +198,9 @@ export async function analyzeImage(
   const textPart =
     lang === "ur"
       ? "یہ ایک طبی نسخے کی تصویر ہے۔ تمام دواؤں کے نام، خوراک اور ہدایات پڑھیں۔ پہلے \"نسخے کا خلاصہ\" لکھیں، پھر --- کے بعد ہر دوا کے لیے اوپر والا فارمیٹ استعمال کریں۔ اگر تحریر واضح نہ ہو تو پھر بھی بہترین کوشش کریں۔"
-      : "This is a photo of a medical prescription. Read ALL medicine names, doses, and instructions. Start with \"Prescription summary:\" as instructed in your system rules, then --- , then each medicine in the English format. If handwriting is unclear, do your best.";
+      : lang === "hi"
+        ? "यह एक चिकित्सा नुस्खे की फोटो है। सभी दवाओं के नाम, खुराक और निर्देश पढ़ें। पहले \"नुस्खे का सारांश:\" लिखें, फिर ---, फिर हर दवा के लिए ऊपर वाला हिंदी प्रारूप। हस्तलिखित अस्पष्ट हो तो भी पूरी कोशिश करें।"
+        : "This is a photo of a medical prescription. Read ALL medicine names, doses, and instructions. Start with \"Prescription summary:\" as instructed in your system rules, then --- , then each medicine in the English format. If handwriting is unclear, do your best.";
 
   const result = await model.generateContent([
     textPart,

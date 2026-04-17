@@ -2,12 +2,13 @@
 
 import { AlertTriangle, Compass, Lightbulb, Sparkles, Stethoscope } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
+import { bodyFontVar, scriptTitleClass, scriptUiClass } from "@/lib/lang-ui";
 
 export default function LandingSections() {
   const { tr, lang } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
-  const introClass = lang === "ur" ? "urdu-ui" : "";
-  const titleClass = lang === "ur" ? "urdu-title" : "";
+  const f = bodyFontVar(lang);
+  const introClass = scriptUiClass(lang);
+  const titleClass = scriptTitleClass(lang);
 
   const steps = [
     { n: "1", title: tr.landingStep1Title, desc: tr.landingStep1Desc, icon: Stethoscope },

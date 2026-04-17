@@ -1,6 +1,7 @@
 "use client";
 
 import { useLang } from "./providers/LanguageProvider";
+import { bodyFontVar, scriptTitleClass, scriptUiClass } from "@/lib/lang-ui";
 
 interface FaqItem {
   q: string;
@@ -9,9 +10,9 @@ interface FaqItem {
 
 export default function FaqFooter() {
   const { tr, lang } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
-  const introClass = lang === "ur" ? "urdu-ui" : "";
-  const titleClass = lang === "ur" ? "urdu-title" : "";
+  const f = bodyFontVar(lang);
+  const introClass = scriptUiClass(lang);
+  const titleClass = scriptTitleClass(lang);
 
   const faqs: FaqItem[] = [
     { q: tr.faq1Q, a: tr.faq1A },

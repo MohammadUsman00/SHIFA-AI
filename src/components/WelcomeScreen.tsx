@@ -9,13 +9,14 @@ import {
   Languages,
   Sun,
   Moon,
-  Globe,
   ShieldCheck,
   Sparkles,
   Stethoscope,
 } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
 import { useTheme } from "./providers/ThemeProvider";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { bodyFontVar, scriptTitleClass, scriptUiClass } from "@/lib/lang-ui";
 
 interface Props {
   onEnter: (name: string) => void;
@@ -23,11 +24,11 @@ interface Props {
 
 export default function WelcomeScreen({ onEnter }: Props) {
   const [name, setName] = useState("");
-  const { tr, lang, toggle: toggleLang } = useLang();
+  const { tr, lang } = useLang();
   const { theme, toggle: toggleTheme } = useTheme();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
-  const introClass = lang === "ur" ? "urdu-ui" : "";
-  const titleClass = lang === "ur" ? "urdu-title" : "";
+  const f = bodyFontVar(lang);
+  const introClass = scriptUiClass(lang);
+  const titleClass = scriptTitleClass(lang);
 
   const highlights = [
     { icon: Zap, text: tr.feature1Title, sub: tr.feature1Desc },
@@ -36,9 +37,23 @@ export default function WelcomeScreen({ onEnter }: Props) {
   ];
 
   const stats = [
-    { label: lang === "ur" ? "فوری سمجھ" : "Fast clarity", value: lang === "ur" ? "چند سیکنڈ" : "In seconds" },
-    { label: lang === "ur" ? "زبانیں" : "Languages", value: "Urdu + English" },
-    { label: lang === "ur" ? "تجربہ" : "Experience", value: lang === "ur" ? "صاف اور پروفیشنل" : "Clean and professional" },
+    {
+      label: lang === "ur" ? "فوری سمجھ" : lang === "hi" ? "तुरंत समझ" : "Fast clarity",
+      value: lang === "ur" ? "چند سیکنڈ" : lang === "hi" ? "कुछ सेकंड" : "In seconds",
+    },
+    {
+      label: lang === "ur" ? "زبانیں" : lang === "hi" ? "भाषाएँ" : "Languages",
+      value:
+        lang === "ur"
+          ? "اردو + English + Hindi"
+          : lang === "hi"
+            ? "हिंदी + उर्दू + अंग्रेज़ी"
+            : "Urdu + English + Hindi",
+    },
+    {
+      label: lang === "ur" ? "تجربہ" : lang === "hi" ? "अनुभव" : "Experience",
+      value: lang === "ur" ? "صاف اور پروفیشنل" : lang === "hi" ? "साफ़ और पेशेवर" : "Clean and professional",
+    },
   ];
 
   return (
@@ -60,10 +75,7 @@ export default function WelcomeScreen({ onEnter }: Props) {
       </div>
 
       <div className="absolute right-5 top-5 z-20 flex items-center gap-2 animate-in delay-4">
-        <button type="button" onClick={toggleLang} className="btn-ghost rounded-xl px-2.5 py-1.5 text-xs">
-          <Globe className="h-3.5 w-3.5" />
-          <span style={{ fontFamily: "var(--font-inter)" }}>{lang === "ur" ? "EN" : "UR"}</span>
-        </button>
+        <LanguageSwitcher />
         <button type="button" onClick={toggleTheme} className="btn-ghost rounded-xl px-2 py-1.5">
           {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
         </button>
@@ -123,7 +135,7 @@ export default function WelcomeScreen({ onEnter }: Props) {
                       {item.label}
                     </p>
                     <p
-                      className={`text-sm font-semibold sm:text-[15px] ${lang === "ur" ? "urdu-ui" : ""}`}
+                      className={`text-sm font-semibold sm:text-[15px] ${introClass}`}
                       style={{ color: "var(--text)", fontFamily: f }}
                     >
                       {item.value}
@@ -215,8 +227,14 @@ export default function WelcomeScreen({ onEnter }: Props) {
               />
 
               <div className="mb-6 text-center">
-                <div className="relative mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-lg" style={{ background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}>
-                  <Activity className="h-8 w-8" />
+                <div className="relative mx-auto mb-6 h-16 w-16">
+                  <div className="absolute inset-0 rounded-2xl bg-teal-500/20 blur-xl dark:bg-[color-mix(in_srgb,var(--primary)_22%,transparent)]" />
+                  <div
+                    className="relative flex h-16 w-16 items-center justify-center rounded-2xl shadow-[0_8px_32px_rgba(45,212,191,0.3)]"
+                    style={{ background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}
+                  >
+                    <Activity className="h-7 w-7" style={{ color: "var(--primary-fg)" }} />
+                  </div>
                 </div>
                 <p
                   className="text-[11px] uppercase tracking-[0.28em]"
@@ -242,14 +260,14 @@ export default function WelcomeScreen({ onEnter }: Props) {
                   className="mb-2 block text-[11px] uppercase tracking-[0.2em]"
                   style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}
                 >
-                  {lang === "ur" ? "پروفائل نام" : "Your name"}
+                  {lang === "ur" ? "پروفائل نام" : lang === "hi" ? "आपका नाम" : "Your name"}
                 </label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={tr.enterName}
-                  className={`input-field rounded-xl border text-start ${lang === "ur" ? "urdu-ui" : ""}`}
+                  className={`input-field rounded-xl border text-start ${introClass}`}
                   style={{ fontFamily: f, background: "var(--surface)", borderColor: "var(--border)" }}
                   onKeyDown={(e) => e.key === "Enter" && onEnter(name.trim() || "Guest")}
                   autoComplete="name"
@@ -259,12 +277,12 @@ export default function WelcomeScreen({ onEnter }: Props) {
               <button
                 type="button"
                 onClick={() => onEnter(name.trim() || "Guest")}
-                className="btn-primary mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-[15px] font-semibold shadow-lg transition-transform active:scale-[0.99]"
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl py-4 text-base font-bold transition-all duration-150 hover:shadow-[0_4px_32px_rgba(45,212,191,0.35)] active:scale-[0.98]"
                 style={{
                   fontFamily: f,
-                  background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))",
                   color: "var(--primary-fg)",
-                  boxShadow: "0 12px 36px -16px var(--primary-glow)",
+                  background: "linear-gradient(90deg, var(--gradient-from), var(--gradient-to))",
+                  boxShadow: "0 4px 24px rgba(45, 212, 191, 0.25)",
                 }}
               >
                 {tr.getStarted}
@@ -276,12 +294,16 @@ export default function WelcomeScreen({ onEnter }: Props) {
               <div className="space-y-2 text-start text-[13px]" style={{ color: "var(--text-3)", fontFamily: f }}>
                 <div className="flex items-start gap-2">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "var(--primary)" }} />
-                  <span className={lang === "ur" ? "urdu-ui" : ""}>{tr.trustNote}</span>
+                  <span className={introClass}>{tr.trustNote}</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <Languages className="mt-0.5 h-4 w-4 shrink-0" style={{ color: "var(--primary)" }} />
-                  <span className={lang === "ur" ? "urdu-ui" : ""}>
-                    {lang === "ur" ? "اردو اور English دونوں میں رہنمائی" : "Guidance in Urdu and English"}
+                  <span className={introClass}>
+                    {lang === "ur"
+                      ? "اردو اور English دونوں میں رہنمائی"
+                      : lang === "hi"
+                        ? "हिंदी, उर्दू और अंग्रेजी में मार्गदर्शन"
+                        : "Guidance in Urdu, English, and Hindi"}
                   </span>
                 </div>
               </div>

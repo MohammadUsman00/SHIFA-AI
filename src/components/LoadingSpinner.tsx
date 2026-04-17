@@ -1,10 +1,11 @@
 "use client";
 
 import { useLang } from "./providers/LanguageProvider";
+import { bodyFontVar } from "@/lib/lang-ui";
 
 export default function LoadingSpinner() {
   const { tr, lang } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
+  const f = bodyFontVar(lang);
 
   return (
     <div className="card p-10 flex flex-col items-center gap-5 animate-in">

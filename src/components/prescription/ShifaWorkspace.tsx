@@ -5,6 +5,7 @@ import { Activity, FileImage, Keyboard, Maximize2, ScanLine, Search, Sparkles } 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLang } from "@/components/providers/LanguageProvider";
+import { bodyFontVar, scriptTitleClass, scriptUiClass } from "@/lib/lang-ui";
 
 type Tab = "text" | "photo";
 
@@ -35,7 +36,9 @@ export default function ShifaWorkspace({
   onSearchMedicines,
 }: Props) {
   const { tr, lang } = useLang();
-  const f = lang === "ur" ? "var(--font-urdu)" : "var(--font-inter)";
+  const f = bodyFontVar(lang);
+  const titleClass = scriptTitleClass(lang);
+  const introClass = scriptUiClass(lang);
 
   return (
     <motion.section
@@ -53,33 +56,53 @@ export default function ShifaWorkspace({
           style={{ background: "radial-gradient(circle, var(--primary) 0%, transparent 70%)" }}
         />
 
-        {/* Header — mockup style */}
-        <div className="relative mb-8 flex flex-col gap-4 border-b border-[var(--border)] pb-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--gradient-from)] to-[var(--gradient-to)] text-white shadow-lg">
-              <Activity className="h-6 w-6" />
+        {/* Hero — focal hierarchy */}
+        <div className="relative flex flex-col items-center px-4 pb-10 pt-10 text-center md:pt-14 md:pb-12">
+          <div
+            className="pointer-events-none absolute left-1/2 top-0 h-[300px] w-[min(100vw,600px)] -translate-x-1/2 rounded-full bg-teal-500/10 blur-[120px] dark:bg-teal-400/10"
+            aria-hidden
+          />
+          <div className="relative mb-6 flex animate-in items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--primary)_22%,transparent)] bg-[color-mix(in_srgb,var(--primary)_8%,transparent)] px-3 py-1.5 font-mono text-xs text-[var(--primary)]">
+            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-[var(--primary)]" />
+            <span translate="no">{tr.heroBadge}</span>
+          </div>
+          <h1
+            className={`relative mb-4 animate-up text-5xl font-black leading-none tracking-tight text-[var(--text)] md:text-7xl ${titleClass}`}
+            style={{ fontFamily: f }}
+          >
+            <span className="gradient-text">{tr.heroHeadlineAccent}</span>
+            <br />
+            <span className="text-[var(--text)]">{tr.heroHeadlineMain}</span>
+          </h1>
+          <p
+            className={`relative mb-3 max-w-md animate-up text-lg leading-relaxed delay-1 text-[var(--text-3)] ${introClass}`}
+            style={{ fontFamily: f }}
+          >
+            {tr.heroSubhead}
+          </p>
+          <p className="relative mb-2 text-sm text-[var(--text-4)] animate-up delay-1" style={{ fontFamily: f }}>
+            {lang === "ur"
+              ? `خوش آمدید، ${userName}`
+              : lang === "hi"
+                ? `स्वागत है، ${userName}`
+                : `Welcome, ${userName}`}
+          </p>
+          <div className="relative mt-2 flex flex-wrap items-center justify-center gap-3 animate-up delay-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--gradient-from)] to-[var(--gradient-to)] text-white shadow-lg">
+              <Activity className="h-5 w-5" />
             </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xl font-bold tracking-tight text-[var(--text)]" translate="no">
-                  Shifa AI
-                </span>
-                <span className="rounded-full border border-[var(--primary)]/30 bg-[var(--primary-subtle)] px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">
-                  Gemini AI
-                </span>
-              </div>
-              <p className="mt-1 text-[13px] text-[var(--text-3)]" style={{ fontFamily: f }}>
-                {lang === "ur" ? `خوش آمدید، ${userName}` : `Welcome, ${userName}`}
+            <div className="text-start">
+              <p className="text-sm font-bold tracking-tight text-[var(--text)]" translate="no">
+                Shifa AI
+              </p>
+              <p className="max-w-[min(100vw-2rem,28rem)] text-[12px] leading-relaxed text-[var(--text-4)]" style={{ fontFamily: f }}>
+                {tr.workspaceSubtitle}
               </p>
             </div>
           </div>
-          <p
-            className="max-w-md text-[13px] leading-relaxed text-[var(--text-4)] sm:text-right"
-            style={{ fontFamily: f }}
-          >
-            {tr.workspaceSubtitle}
-          </p>
         </div>
+
+        <div className="relative mb-6 border-b border-[var(--border)]" aria-hidden />
 
         {/* Tabs — pill segment */}
         <div className="relative mb-6 flex flex-wrap gap-2">
