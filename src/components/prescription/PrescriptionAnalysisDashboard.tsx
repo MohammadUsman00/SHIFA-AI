@@ -12,16 +12,20 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
-import type { PrescriptionAnalysisJson } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLang } from "@/components/providers/LanguageProvider";
 import { bodyFontVar } from "@/lib/lang-ui";
+import AnalysisTools from "@/components/features/AnalysisTools";
+import type { PrescriptionAnalysisJson } from "@/types";
 
 interface Props {
   userName: string;
   imageSrc: string;
   analysis: PrescriptionAnalysisJson;
+  previousAnalysis?: PrescriptionAnalysisJson | null;
+  prescriptionSummary?: string | null;
+  hasConvex?: boolean;
   onScanAnother: () => void;
   onSearchMedicines: () => void;
   activitySlot?: React.ReactNode;
@@ -65,6 +69,9 @@ export default function PrescriptionAnalysisDashboard({
   userName,
   imageSrc,
   analysis,
+  previousAnalysis = null,
+  prescriptionSummary,
+  hasConvex = false,
   onScanAnother,
   onSearchMedicines,
   activitySlot,
@@ -83,24 +90,20 @@ export default function PrescriptionAnalysisDashboard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-[28px] border border-[color-mix(in_srgb,var(--border)_90%,transparent)] bg-[color-mix(in_srgb,var(--surface)_75%,transparent)] p-4 shadow-[0_40px_100px_-48px_rgba(0,0,0,0.65)] backdrop-blur-2xl sm:p-6"
+      className="cause-panel"
     >
-      <div className="pointer-events-none absolute inset-0 opacity-[0.12] hero-grid" aria-hidden />
-
-      <div className="relative mb-6 flex flex-col gap-2 border-b border-[var(--border)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="cause-panel-header cause-panel-header-gold flex flex-col gap-2 px-6 py-6 sm:flex-row sm:items-end sm:justify-between sm:px-8">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--gradient-from)] to-[var(--gradient-to)] text-white shadow-lg">
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-full border-2"
+            style={{ borderColor: "var(--gold)", background: "var(--navy)", color: "var(--gold)" }}
+          >
             <Activity className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-4)]">
-              Gemini AI
-            </p>
-            <h2
-              className="text-lg font-bold tracking-tight text-[var(--text)] sm:text-xl"
-              style={{ fontFamily: uiFont }}
-            >
-              {tr.dashboardRxTitle}: {displayName}
+            <p className="royal-kicker text-[10px]">{tr.dashboardRxTitle}</p>
+            <h2 className="royal-title text-xl sm:text-2xl" style={{ fontFamily: uiFont }}>
+              {displayName}
             </h2>
           </div>
         </div>
@@ -111,10 +114,10 @@ export default function PrescriptionAnalysisDashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12 xl:gap-5">
+      <div className="grid grid-cols-1 gap-4 p-4 sm:p-6 xl:grid-cols-12 xl:gap-5">
         {/* Left — medications */}
         <div className="flex flex-col xl:col-span-4">
-          <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-4)]">
+          <p className="royal-kicker mb-3 text-[10px]">
             {lang === "ur" ? "دوائیں" : lang === "hi" ? "दवाएं" : "Medications"}
           </p>
           <div className="custom-scrollbar max-h-[min(70vh,640px)] space-y-3 overflow-y-auto pr-1">
@@ -139,7 +142,7 @@ export default function PrescriptionAnalysisDashboard({
                   <Card className="overflow-hidden border-[var(--border)] bg-[var(--surface)]/90">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-[15px] text-[var(--text)]">
-                        <span className="bg-gradient-to-r from-[var(--gradient-from)] to-[var(--gradient-to)] bg-clip-text text-transparent">
+                        <span style={{ color: "var(--primary)" }}>
                           {med.name.en || med.name.ur || `#${i + 1}`}
                         </span>
                       </CardTitle>
@@ -295,6 +298,16 @@ export default function PrescriptionAnalysisDashboard({
             {tr.dashboardFooterDisclaimer}
           </p>
         </div>
+      </div>
+
+      <div className="border-t border-[var(--border)] p-4 sm:p-6">
+        <AnalysisTools
+          analysis={analysis}
+          previousAnalysis={previousAnalysis}
+          patientName={displayName}
+          summary={prescriptionSummary ?? undefined}
+          hasConvex={hasConvex}
+        />
       </div>
 
       <AnimatePresence>

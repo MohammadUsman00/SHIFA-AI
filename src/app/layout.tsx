@@ -1,6 +1,27 @@
-import type { Metadata } from "next";
-import { Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Noto_Sans_Devanagari, Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import {
+  Cormorant_Garamond,
+  Noto_Naskh_Arabic,
+  Noto_Nastaliq_Urdu,
+  Noto_Sans_Devanagari,
+  Source_Sans_3,
+} from "next/font/google";
 import "./globals.css";
+import PwaRegister from "@/components/PwaRegister";
+
+const displayFont = Cormorant_Garamond({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const sansFont = Source_Sans_3({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 const urduFont = Noto_Naskh_Arabic({
   subsets: ["arabic"],
@@ -23,26 +44,34 @@ const hindiFont = Noto_Sans_Devanagari({
   display: "swap",
 });
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
-  title: "Shifa AI — شفا اے آئی",
-  description: "Professional AI-powered prescription guidance in Urdu, English, and Hindi",
+  title: "Shifa AI — Prescription clarity for every family",
+  description:
+    "A patient-first health companion that helps you understand prescriptions and medicines in Urdu, English, and Hindi.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
+  appleWebApp: { capable: true, title: "Shifa AI" },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0f1c2e",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang="ur"
+      lang="en"
       translate="no"
-      className={`dark scroll-smooth ${urduFont.variable} ${urduNastaliq.variable} ${hindiFont.variable} ${inter.variable}`}
+      className={`scroll-smooth ${displayFont.variable} ${sansFont.variable} ${urduFont.variable} ${urduNastaliq.variable} ${hindiFont.variable}`}
       suppressHydrationWarning
     >
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   );
 }

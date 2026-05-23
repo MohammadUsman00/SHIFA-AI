@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { Camera, Upload, X, FileImage, ArrowRight } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
 import { bodyFontVar } from "@/lib/lang-ui";
+import CameraCoach from "./features/CameraCoach";
 
 interface Props {
   onUpload: (base64: string) => void;
@@ -40,6 +41,7 @@ export default function PhotoUpload({ onUpload, isLoading, hidePreview = false, 
   if (preview && hidePreview) {
     return (
       <div className="space-y-4">
+        <CameraCoach previewUrl={preview} />
         <div className="flex items-start justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] p-4">
           <div className="flex items-center gap-2 text-[13px]" style={{ color: "var(--text-2)", fontFamily: f }}>
             <FileImage className="h-4 w-4 shrink-0 text-[var(--primary)]" />
@@ -72,7 +74,7 @@ export default function PhotoUpload({ onUpload, isLoading, hidePreview = false, 
 
   if (preview) {
     return (
-      <div className="card overflow-hidden animate-scale gradient-border">
+      <div className="card overflow-hidden animate-in gradient-border">
         <div className="relative" style={{ background: "var(--surface-2)" }}>
           <div className="aspect-[16/10] max-h-[340px] flex items-center justify-center p-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}

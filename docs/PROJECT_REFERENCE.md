@@ -1,6 +1,6 @@
 # Shifa AI — Project reference (for humans & AI assistants)
 
-This document describes what **SHIFA-AI** does, what it **does not** do, how data flows, and where to change behavior. Keep it aligned with the code when you ship features.
+This document describes what **SHIFA-AI** does, what it **does not** do, how data flows, and where to change behavior. Keep it aligned with the code when you ship features. User-facing setup: [`README.md`](../README.md).
 
 ---
 
@@ -8,8 +8,10 @@ This document describes what **SHIFA-AI** does, what it **does not** do, how dat
 
 **Shifa AI** is a **patient-facing informational web app** that helps users understand:
 
-- **Medicines** (by typed name: brand, generic, or local name), in **Hindi**, **Urdu**, or **English** UI language.
-- **Prescription images** (upload or camera): multimodal AI extracts content and presents it as **structured JSON** (preferred) or **legacy free-text** parsed into cards if structured analysis fails.
+- **Medicines** (typed name: brand, generic, or local) with UI in **Hindi**, **Urdu**, or **English**.
+- **Prescription images** (upload or camera): multimodal AI extracts content as **structured JSON** (preferred) or **legacy free-text** parsed into cards.
+
+Extended capabilities (informational only): **medicine cabinet**, **family profiles**, **schedule timeline**, **interaction hints**, **Rx compare**, **simplify**, **TTS**, **scoped chat**, **share links**, **PWA**.
 
 It is **not** a regulated medical device, **not** a replacement for a doctor, and **not** diagnostic or prescribing software.
 
@@ -17,124 +19,301 @@ It is **not** a regulated medical device, **not** a replacement for a doctor, an
 
 ## 2. What this project **does**
 
-### 2.1 Frontend (Next.js 14 App Router)
+### 2.1 App routes
 
-- **Welcome screen**: user enters a display name; theme + language toggles.
-- **Main workspace (`ShifaWorkspace`)**: bento-style layout — tools (text vs photo tab), center preview for prescription image, right column with quick actions and **live recent queries**.
-- **Structured prescription view (`PrescriptionAnalysisDashboard`)**: shown when `/api/analyze` returns **`prescriptionAnalysis`** (Gemini JSON mode for images). Bilingual medication rows, image preview, safety notes, activity feed.
-- **Legacy results**: if structured JSON is absent, **ResultCard** list for text medicine answers or parsed free-text prescription output.
-- **i18n**: `LanguageProvider` (`ur` | `en` | `hi`) drives copy from `src/lib/translations.ts`; `LanguageSwitcher` + `localStorage` key `shifa-lang`. Workspace shell uses **`dir="ltr"`** so grid layout is stable; RTL applies for Urdu where needed.
-- **Theme**: `ThemeProvider` toggles `html.dark` for light/dark tokens in `globals.css`.
-- **Motion**: `motion/react` for transitions on key surfaces.
+| Route | File | Purpose |
+|-------|------|---------|
+| `/` | `src/app/page.tsx` | Single-page app: welcome → logged-in workspace |
+| `/share/[token]` | `src/app/share/[token]/page.tsx` | Read-only shared prescription summary (Convex) |
 
-### 2.2 API: `POST /api/analyze`
+### 2.2 Frontend flow (`page.tsx`)
 
-**Rate limiting:** All inference POST routes (`/api/analyze`, `/api/enrich`, `/api/scrape`) call `enforceApiRateLimit` first. Excess traffic returns **429** with `{ code: "RATE_LIMITED" }`. Configure **Upstash Redis** in production (see `docs/PRODUCTION.md`); otherwise an in-process limiter applies per Node instance only.
+1. **Welcome** (`WelcomeScreen`) — landing, mission copy, FAQ, impact counter; user enters display name.
+2. **Main scroll** — hero, trust ribbon, `ShifaWorkspace` (text/photo tabs), `MedicineCabinet`, landing sections, FAQ footer.
+3. **Results branch:**
+   - **`prescriptionAnalysis` present** → `PrescriptionAnalysisDashboard` + `AnalysisTools` (schedule, interactions, chat, export, share, compare, TTS, simplify).
+   - **Otherwise** → `ResultCard` list + inline tools (simplify, TTS, export, chat) for legacy/text flows.
 
+**Convex optional:** `hasConvex = Boolean(process.env.NEXT_PUBLIC_CONVEX_URL)`. Without it: `ConvexMissingBanner`, `RecentQueriesDisabled`, cabinet uses `localStorage` via `src/lib/local-cabinet.ts`.
+
+### 2.3 UI shell & design
+
+- **Theme:** `ThemeProvider` — `html.dark` class, `localStorage` key `dawa-theme` (default **light**).
+- **i18n:** `LanguageProvider` — `ur` \| `en` \| `hi`; copy in `src/lib/translations.ts`; feature strings in `src/lib/feature-copy.ts`; `localStorage` key `shifa-lang`.
+- **Typography:** `src/lib/lang-ui.ts` — `bodyFontVar`, `chromeFontVar`, `scriptTitleClass`, `scriptUiClass`.
+- **Design tokens:** `src/app/globals.css` — royal healthcare palette (navy `#0f1c2e`, gold `#b8956a`, sage primary, cream surfaces); classes like `shifa-page`, `royal-kicker`, `royal-title`, `cause-panel`, `segment-tabs`, `btn-primary`, `btn-gold`.
+- **Fonts:** `src/app/layout.tsx` — Cormorant Garamond (display), Source Sans 3 (UI), Noto Nastaliq / Noto Devanagari (Urdu/Hindi).
+- **Motion:** `motion/react` on `PrescriptionAnalysisDashboard` expand/collapse.
+- **PWA:** `public/manifest.json`, `public/sw.js`, `PwaRegister.tsx` — SW registers **production only**; dev unregisters SW to avoid stale `/_next/static` interception.
+
+### 2.4 Key components
+
+| Component | Role |
+|-----------|------|
+| `ShifaWorkspace` | Care-desk layout; text vs photo segment tabs |
+| `MedicineInput` | Text search + voice input (Web Speech API) |
+| `PhotoUpload` | Image upload/camera + `CameraCoach` |
+| `PrescriptionAnalysisDashboard` | Structured Rx UI; hosts `AnalysisTools` |
+| `AnalysisTools` | Schedule, interactions, chat, export, share, compare, TTS, simplify |
+| `MedicineCabinet` | Cabinet list + `FamilyProfileBar`; Convex or local fallback |
+| `ImpactCounter` | `getImpactStats` query; static fallback without Convex |
+| `RecentQueries` | Live feed via `getRecentQueries` |
+
+### 2.5 Client-side persistence (no auth)
+
+| Key / module | Storage | Purpose |
+|--------------|---------|---------|
+| `shifa-client-id` | `localStorage` | Anonymous cabinet/sync id (`client-id.ts`) |
+| `shifa-profiles`, `shifa-active-profile` | `localStorage` | Family profiles (`profiles.ts`) |
+| `shifa-lang` | `localStorage` | UI language |
+| `dawa-theme` | `localStorage` | Light/dark theme |
+| `local-cabinet.ts` | `localStorage` | Cabinet when Convex unavailable |
+
+Display name is **session state only** (React), not persisted server-side.
+
+---
+
+## 3. API routes
+
+**Rate limiting:** All inference POST routes call `enforceApiRateLimit(request, namespace)` first. Namespaces: `analyze`, `enrich`, `scrape`, `chat`, `simplify`, `interactions`. Returns **429** `{ code: "RATE_LIMITED" }` when exceeded. See `src/lib/rate-limit.ts` and `docs/PRODUCTION.md`.
+
+### 3.1 `POST /api/analyze`
+
+**File:** `src/app/api/analyze/route.ts`  
 **Body:** `{ text?: string, image?: string (data URL), lang?: "ur" | "en" | "hi" }` — require **either** `text` **or** `image`.
 
 **Text path**
 
-- Calls Gemini (`analyzeText`) with language-specific system prompts that enforce a fixed line-oriented format (Urdu or English blocks: name, purpose, dosage, timing, food, stop, warnings).
-- Optional **fallback** from `src/lib/fallback-medicines.ts` if Gemini fails for text only.
-- Response: `{ medicines[], rawText, prescriptionSummary?, prescriptionAnalysis?, usedFallback?, error? }`.
-- Parsed server-side via `parseGeminiResponse()` into `MedicineResult[]`.
+- Gemini `analyzeText` (`src/lib/gemini.ts`) — line-oriented format (name, purpose, dosage, timing, food, stop, warnings).
+- Fallback: `findFallbackMedicine` from `src/lib/fallback-medicines.ts` if Gemini fails.
+- Parsed via `parseGeminiResponse()` → `MedicineResult[]`.
 
-**Image path (preferred)**
+**Image path**
 
-1. **First** tries **`analyzePrescriptionImageStructured`**: Gemini **`gemini-2.5-flash`** with `responseMimeType: application/json` + **schema** for `PrescriptionAnalysisJson` (`patient_name`, `medications[]` with bilingual `name/dosage/route/timing`, `safety_notes[]`).
-2. On success: returns immediately with `prescriptionAnalysis`, `medicines` mapped via `mapStructuredToMedicineResults` for compatibility (enrich, Convex save).
-3. On failure: **falls back** to **`analyzeImage`** (legacy formatted text), then same `parseGeminiResponse` as text.
+1. **Preferred:** `analyzePrescriptionImageStructured` — `gemini-2.5-flash`, JSON schema → `PrescriptionAnalysisJson`.
+2. **Fallback:** `analyzeImage` (legacy text) → `parseGeminiResponse`.
 
-**Convex side effect:** on success with medicines, client calls **`saveQuery`** mutation with first medicine name or `"Rx"`, `inputType`, and `rawText`.
+**Response (typical):** `{ medicines[], rawText, prescriptionSummary?, prescriptionAnalysis?, usedFallback?, error? }`.
 
-### 2.3 API: `POST /api/enrich`
+**Client side effect:** on success, `saveQuery` mutation (if Convex configured).
 
-- **`medicineName`** required.
-- Uses **Exa** (`searchDrugInfo`) to return `{ sources: Source[] }` (titles, URLs, snippets). Failures return `{ sources: [] }`.
+### 3.2 `POST /api/enrich`
 
-### 2.4 API: `POST /api/scrape`
+**File:** `src/app/api/enrich/route.ts`  
+**Body:** `{ medicineName }`  
+**Returns:** `{ sources: Source[] }` via Exa (`src/lib/exa.ts`). Failures → `{ sources: [] }`.
 
-- **`medicineName`** required.
-- Uses **Apify** `scrapeCDSCO` against CDSCO drug search URL; may return `officialData` or fallback via `findFallbackMedicine`.
+### 3.3 `POST /api/scrape`
 
-### 2.5 Convex (`convex/`)
+**File:** `src/app/api/scrape/route.ts`  
+**Body:** `{ medicineName }`  
+**Returns:** Apify CDSCO scrape (`src/lib/apify.ts`) or fallback medicine data. **Not called from UI** — backend/API-only.
 
-- **Table `queries`**: `medicineName`, `inputType` (`text`|`image`), `response`, optional `sources` (note: schema uses `v.array(v.string())` but mutation passes arrays of strings for sources in practice — verify if mismatch).
-- **`saveQuery` mutation**: inserts one row per successful analyze that returns medicines (from client).
-- **`getRecentQueries` query**: last **20** rows, descending by `timestamp`.
+### 3.4 `POST /api/chat`
 
-### 2.6 Docker
+**File:** `src/app/api/chat/route.ts`  
+**Body:** `{ message, contextSummary, lang? }`  
+**Returns:** `{ reply }` via `rxFollowUpChat` (`src/lib/gemini-features.ts`).
 
-- `next.config.mjs`: `output: "standalone"`.
-- `Dockerfile` + `docker-compose.yml` document production image; **`NEXT_PUBLIC_CONVEX_URL`** is a **build arg** for client bundle.
+### 3.5 `POST /api/simplify`
+
+**File:** `src/app/api/simplify/route.ts`  
+**Body:** `{ text, lang? }`  
+**Returns:** `{ simplified }` via `simplifyMedicalText`.
+
+### 3.6 `POST /api/interactions`
+
+**File:** `src/app/api/interactions/route.ts`  
+**Body:** `{ medications: MedicationStructured[], lang? }`  
+**Returns:** `{ hints }` or `{ hints: "", skipped: true }` if fewer than 2 medications.
 
 ---
 
-## 3. What this project **does not** do (limitations)
+## 4. Convex (`convex/`)
+
+Read **`convex/_generated/ai/guidelines.md`** before editing Convex code.
+
+### 4.1 Schema (`convex/schema.ts`)
+
+| Table | Fields (summary) | Indexes |
+|-------|------------------|---------|
+| `queries` | `medicineName`, `inputType`, `response`, `sources?`, `timestamp` | — |
+| `cabinetItems` | `clientId`, `profileId`, `medicineName`, optional med fields, `purchased`, `savedAt` | `by_client_profile` |
+| `shareLinks` | `token`, `payload` (JSON string), `expiresAt`, `createdAt` | `by_token` |
+
+### 4.2 Mutations (`convex/mutations.ts`)
+
+| Export | Purpose |
+|--------|---------|
+| `saveQuery` | Insert recent query after analyze |
+| `saveCabinetItem` | Upsert cabinet row by client + profile + name |
+| `removeCabinetItem` | Delete cabinet row |
+| `toggleCabinetPurchased` | Pharmacy checklist toggle |
+| `createShareLink` | Store share token + payload |
+
+### 4.3 Queries (`convex/queries.ts`)
+
+| Export | Purpose |
+|--------|---------|
+| `getRecentQueries` | Last 20 queries, desc |
+| `getCabinetItems` | Cabinet for `clientId` + `profileId` |
+| `getShareByToken` | Share payload if not expired |
+| `getImpactStats` | Counts for welcome impact counter |
+
+### 4.4 Deployments
+
+| Command | Target |
+|---------|--------|
+| `npx convex dev` | **Dev** deployment (`CONVEX_DEPLOYMENT` in `.env.local`) |
+| `npx convex dev --once` | One-shot push to dev |
+| `npx convex deploy` | **Production** deployment |
+
+`NEXT_PUBLIC_CONVEX_URL` must match the deployment you pushed to. Mismatch causes errors like `Could not find public function for 'queries:getImpactStats'`.
+
+---
+
+## 5. Shared types (`src/types/index.ts`)
+
+| Type | Use |
+|------|-----|
+| `BilingualField` | `{ en, ur }` strings in structured Rx |
+| `MedicationStructured` | Single med row in JSON Rx |
+| `PrescriptionAnalysisJson` | Full structured image analysis |
+| `MedicineResult` | Card/list UI model |
+| `Source` | Exa enrichment link |
+| `FallbackMedicine` | Offline JSON fallback entries |
+
+---
+
+## 6. Library modules (`src/lib/`)
+
+| Module | Role |
+|--------|------|
+| `gemini.ts` | Core analyze: text, image, structured JSON |
+| `gemini-features.ts` | Chat, simplify, interaction checks |
+| `fallback-medicines.ts` | Offline drug JSON + lookup |
+| `exa.ts` | Drug search enrichment |
+| `apify.ts` | CDSCO scrape (API route only) |
+| `rate-limit.ts` | Upstash + in-memory limiter |
+| `translations.ts` | Main UI copy (en/ur/hi) |
+| `feature-copy.ts` | Feature-specific i18n |
+| `lang-ui.ts` | Font/CSS class helpers |
+| `i18n/index.ts` | `languages`, `dir`, `fontClass` |
+| `schedule.ts` | Parse timing → daily slots |
+| `compare-rx.ts` | Diff two `PrescriptionAnalysisJson` |
+| `pdf-export.ts` | Print-friendly summary window |
+| `tts.ts` | Web Speech API read-aloud |
+| `image-quality.ts` | Camera coach heuristics |
+| `client-id.ts` | Anonymous client id |
+| `profiles.ts` | Family profile CRUD (local) |
+| `local-cabinet.ts` | Cabinet without Convex |
+
+---
+
+## 7. What this project **does not** do
 
 | Area | Limitation |
 |------|------------|
-| **Medical role** | Does **not** diagnose, prescribe, or override clinician judgment. Copy repeatedly disclaims. |
-| **Structured extraction** | **Not guaranteed** for every image: depends on Gemini JSON path succeeding; illegible photos yield `null` fields or fallback text. |
-| **Guaranteed accuracy** | AI can hallucinate or misread handwriting; app presents **best-effort** output. |
-| **Authentication** | No user accounts, sessions, or role-based access in codebase — display name is local UX only. |
-| **PHI handling** | No HIPAA/BAA claims; images go to Google APIs when user analyzes — production needs legal review, retention policy, encryption. |
-| **Exa / Apify** | Optional; if keys missing or calls fail, enrichment/scrape degrade gracefully (empty or null). |
-| **Convex** | App expects `NEXT_PUBLIC_CONVEX_URL`; without it, Convex client may error at runtime. |
-| **Offline** | Requires network for APIs and Convex. |
-| **Regulatory** | Not validated as a medical product in any jurisdiction. |
+| **Medical role** | No diagnosis, prescribing, or clinician override |
+| **Structured extraction** | Not guaranteed per image; JSON path can fail → legacy text |
+| **Accuracy** | AI can hallucinate or misread handwriting |
+| **Authentication** | No accounts; display name is local UX only |
+| **PHI / HIPAA** | No BAA claims; images sent to Google when analyzed |
+| **Exa / Apify** | Optional; graceful degradation |
+| **Convex** | Optional; degraded mode without `NEXT_PUBLIC_CONVEX_URL` |
+| **Offline** | Requires network for AI APIs |
+| **Scrape API** | Implemented but not wired in UI |
+| **Regulatory** | Not validated as a medical product |
 
 ---
 
-## 4. Environment variables
+## 8. Environment variables
 
 | Variable | Required for | Notes |
 |----------|----------------|-------|
-| `GEMINI_API_KEY` | Core AI (text + image) | Server-only |
-| `NEXT_PUBLIC_CONVEX_URL` | Live queries | Public URL; must match deployment; baked in Docker **build** |
-| `EXA_API_KEY` | `/api/enrich` | Optional for core flow |
+| `GEMINI_API_KEY` | All AI routes | Server-only |
+| `NEXT_PUBLIC_CONVEX_URL` | Convex features | Must match deployed backend; Docker build-time |
+| `CONVEX_DEPLOYMENT` | `npx convex dev` | Set by Convex CLI (e.g. `dev:your-name`) |
+| `EXA_API_KEY` | `/api/enrich` | Optional |
 | `APIFY_API_TOKEN` | `/api/scrape` | Optional |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Distributed rate limits | Recommended on Vercel |
+| `RATE_LIMIT_MAX_REQUESTS` / `RATE_LIMIT_WINDOW_MS` | Tuning | Defaults 30 / 60s |
+| `RATE_LIMIT_DISABLED` | Local dev | `true` disables all limits |
 
-Copy from `.env.example` to `.env.local` locally.
+Copy from `.env.example` → `.env.local`. Never commit secrets.
 
 ---
 
-## 5. File map (high signal)
+## 9. File map (high signal)
 
 | Path | Role |
 |------|------|
-| `src/app/page.tsx` | Main app: welcome vs workspace vs structured dashboard |
-| `src/app/api/analyze/route.ts` | Analyze orchestration |
-| `src/lib/gemini.ts` | Gemini models, JSON prescription, text/image prompts |
-| `src/components/prescription/ShifaWorkspace.tsx` | Bento workspace UI |
-| `src/components/prescription/PrescriptionAnalysisDashboard.tsx` | Structured result UI |
-| `convex/schema.ts`, `mutations.ts`, `queries.ts` | Data layer |
-| `README.md` | User-facing setup, Docker, badges |
+| `src/app/page.tsx` | Main app orchestration |
+| `src/app/layout.tsx` | Fonts, metadata, PWA, providers shell |
+| `src/app/globals.css` | Design system tokens + component classes |
+| `src/app/api/*/route.ts` | Server API handlers |
+| `src/components/WelcomeScreen.tsx` | Landing + onboarding |
+| `src/components/prescription/ShifaWorkspace.tsx` | Assistant workspace |
+| `src/components/prescription/PrescriptionAnalysisDashboard.tsx` | Structured Rx dashboard |
+| `src/components/features/*` | Cabinet, tools, share, TTS, etc. |
+| `src/components/providers/*` | Theme, language |
+| `convex/schema.ts`, `mutations.ts`, `queries.ts` | Backend |
+| `public/manifest.json`, `public/sw.js` | PWA |
+| `next.config.mjs` | Standalone output, security headers, webpack poll (Windows) |
+| `README.md` | Setup, deploy, troubleshooting |
+| `docs/PRODUCTION.md` | Rate limits, ops runbook |
 
 ---
 
-## 6. Scripts
+## 10. Scripts
 
-- `npm run dev` — dev server  
-- `npm run clean` — delete `.next`  
-- `npm run dev:clean` — clean + dev (helps chunk cache issues on Windows/OneDrive)  
-- `npm run build` / `npm run build:clean` / `npm run start` / `npm run lint`
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Next.js dev server |
+| `npm run dev:clean` | Remove `.next` then dev |
+| `npm run clean` | Delete `.next` |
+| `npm run build` / `build:clean` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run test` / `test:watch` | Vitest (`src/**/*.test.ts`) |
+| `npm run ci` | lint + test + build |
 
----
-
-## 7. When editing behavior
-
-- **Change AI tone/format**: `src/lib/gemini.ts` system prompts and `parseGeminiResponse` labels in `route.ts` must stay in sync where applicable.
-- **Change Convex schema**: follow `convex/_generated/ai/guidelines.md`; add migrations if needed.
-- **New API route**: add under `src/app/api/<name>/route.ts` and document env deps.
-
----
-
-## 8. Version pin (check `package.json` for current)
-
-- Next.js 14.x, React 18, TypeScript 5, Tailwind 3, Convex 1.x, `@google/generative-ai`, etc.
+**Local dev:** run `npx convex dev` in a second terminal when using Convex.
 
 ---
 
-*Last updated to match repository structure; regenerate or edit this file when architecture changes materially.*
+## 11. When editing behavior
+
+| Change | Where to look |
+|--------|----------------|
+| AI tone / analyze format | `src/lib/gemini.ts`, `parseGeminiResponse` in `analyze/route.ts` |
+| Chat / simplify / interactions | `src/lib/gemini-features.ts`, matching API routes |
+| UI copy | `src/lib/translations.ts`, `src/lib/feature-copy.ts` |
+| Convex schema | `convex/schema.ts` + `convex/_generated/ai/guidelines.md`; migrations if needed |
+| New API route | `src/app/api/<name>/route.ts`, add rate-limit namespace, document env |
+| New feature UI | `src/components/features/`, wire from `page.tsx` or `AnalysisTools.tsx` |
+| Cabinet without Convex | `src/lib/local-cabinet.ts` |
+| PWA / SW | `public/sw.js` — do not intercept `/_next/` or `/api/` |
+
+---
+
+## 12. Testing
+
+Vitest covers deterministic logic only:
+
+- `src/lib/fallback-medicines.test.ts`
+- `src/lib/lang-ui.test.ts`
+- `src/lib/i18n/i18n.test.ts`
+- `src/lib/rate-limit.test.ts`
+
+Gemini output is **not** unit-tested — smoke-test manually with real keys.
+
+---
+
+## 13. Version pins (see `package.json` for exact)
+
+Next.js 14.x · React 18 · TypeScript 5 · Tailwind 3 · Convex 1.x · `@google/generative-ai` · Vitest 2.x
+
+---
+
+*Last updated to match repository structure (features, APIs, Convex, PWA). Edit when architecture changes materially.*

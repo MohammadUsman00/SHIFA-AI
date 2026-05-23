@@ -3,11 +3,12 @@
 import { useState, useCallback, type ReactNode } from "react";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { AlertCircle, FileImage, Sparkles } from "lucide-react";
+import { AlertCircle, FileImage } from "lucide-react";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { LanguageProvider, useLang } from "@/components/providers/LanguageProvider";
 import WelcomeScreen from "@/components/WelcomeScreen";
 import Navbar from "@/components/Navbar";
+import TrustRibbon from "@/components/TrustRibbon";
 import LandingSections from "@/components/LandingSections";
 import FaqFooter from "@/components/FaqFooter";
 import MedicineInput from "@/components/MedicineInput";
@@ -22,6 +23,12 @@ import PrescriptionAnalysisDashboard from "@/components/prescription/Prescriptio
 import ShifaWorkspace from "@/components/prescription/ShifaWorkspace";
 import { MedicineResult, Source, type PrescriptionAnalysisJson } from "@/types";
 import { bodyFontVar } from "@/lib/lang-ui";
+import MedicineCabinet from "@/components/features/MedicineCabinet";
+import RxFollowUpChat from "@/components/features/RxFollowUpChat";
+import ExportPdfButton from "@/components/features/ExportPdfButton";
+import TtsButton from "@/components/features/TtsButton";
+import SimplifyButton from "@/components/features/SimplifyButton";
+import CameraCoach from "@/components/features/CameraCoach";
 
 type Tab = "text" | "photo";
 
@@ -36,10 +43,12 @@ function App({
   saveQuery,
   renderRecentQueries,
   showConvexBanner,
+  hasConvex,
 }: {
   saveQuery: (args: SaveQueryArgs) => Promise<void>;
   renderRecentQueries: (onSelect: (name: string) => void) => ReactNode;
   showConvexBanner?: boolean;
+  hasConvex: boolean;
 }) {
   const [userName, setUserName] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<Tab>("photo");
@@ -53,6 +62,8 @@ function App({
   const [prescriptionAnalysis, setPrescriptionAnalysis] = useState<PrescriptionAnalysisJson | null>(null);
   const [rxImageUrl, setRxImageUrl] = useState<string | null>(null);
   const [photoUploadKey, setPhotoUploadKey] = useState(0);
+  const [previousAnalysis, setPreviousAnalysis] = useState<PrescriptionAnalysisJson | null>(null);
+  const [simplifiedSummary, setSimplifiedSummary] = useState<string | null>(null);
   const { tr, lang } = useLang();
   const f = bodyFontVar(lang);
 
@@ -88,7 +99,13 @@ function App({
       const d = await r.json();
       if (d.error) { setError(d.error); return; }
       setPrescriptionSummary(typeof d.prescriptionSummary === "string" && d.prescriptionSummary.trim() ? d.prescriptionSummary.trim() : null);
-      setPrescriptionAnalysis(d.prescriptionAnalysis ?? null);
+      if (d.prescriptionAnalysis) {
+        setPreviousAnalysis(prescriptionAnalysis);
+        setPrescriptionAnalysis(d.prescriptionAnalysis);
+      } else {
+        setPrescriptionAnalysis(null);
+      }
+      setSimplifiedSummary(null);
       if (d.medicines?.length) {
         setResults(d.medicines);
         d.medicines.forEach((m: MedicineResult, i: number) => enrich(m, i));
@@ -97,22 +114,15 @@ function App({
         setResults([
           {
             name: input.text || "",
-            nameUrdu:
-              input.text ||
-              (lang === "ur" ? "دوا" : lang === "hi" ? "दवा" : "Medicine"),
-            purpose: "",
-            dosage: "",
-            timing: "",
-            foodWarnings: "",
-            stopInstructions: "",
-            warnings: "",
+            nameUrdu: input.text || (lang === "ur" ? "دوا" : lang === "hi" ? "दवा" : "Medicine"),
+            purpose: "", dosage: "", timing: "", foodWarnings: "", stopInstructions: "", warnings: "",
             rawResponse: d.rawText,
           },
         ]);
       } else { setError(tr.noResults); }
     } catch { setError(tr.networkError); }
     finally { setIsLoading(false); }
-  }, [enrich, saveQuery, tr, lang]);
+  }, [enrich, saveQuery, tr, lang, prescriptionAnalysis]);
 
   const goScanAnother = useCallback(() => {
     setPrescriptionAnalysis(null);
@@ -135,32 +145,46 @@ function App({
     document.getElementById("assistant")?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
-  const onRecentSelect = useCallback(
-    (n: string) => {
-      setActiveTab("text");
-      analyze({ text: n });
-    },
-    [analyze]
-  );
+  const onRecentSelect = useCallback((n: string) => {
+    setActiveTab("text");
+    analyze({ text: n });
+  }, [analyze]);
 
-  if (!userName) return <WelcomeScreen onEnter={(n) => setUserName(n)} />;
+  if (!userName) return <WelcomeScreen onEnter={(n) => setUserName(n)} hasConvex={hasConvex} />;
 
-  const showStructuredDashboard =
-    Boolean(prescriptionAnalysis && rxImageUrl && !isLoading && !error);
+  const showStructuredDashboard = Boolean(prescriptionAnalysis && rxImageUrl && !isLoading && !error);
 
   return (
-    <div dir="ltr" className="noise min-h-screen">
+    <div className="shifa-page">
       <Navbar userName={userName} onLogout={() => setUserName(null)} showSectionLinks />
+      <TrustRibbon />
 
-      <div className="mx-auto max-w-[1600px] space-y-10 px-4 pb-20 pt-4 sm:px-6 lg:px-8 lg:pt-8">
+      {/* Page hero — cause framing */}
+      <section className="border-b border-[var(--border)] bg-[var(--surface)]">
+        <div className="shifa-container py-12 sm:py-16">
+          <p className="royal-kicker mb-3">{tr.welcomeKicker}</p>
+          <hr className="gold-rule mb-6 max-w-xs" />
+          <h1 className="royal-title mb-4 max-w-3xl text-3xl sm:text-4xl lg:text-5xl" style={{ fontFamily: f }}>
+            {tr.heroTitle}
+          </h1>
+          <p className="royal-lead max-w-2xl" style={{ fontFamily: f }}>
+            {tr.heroDesc}
+          </p>
+        </div>
+      </section>
+
+      <main className="shifa-container space-y-12 py-10 sm:py-14">
         {showConvexBanner && <ConvexMissingBanner />}
-
         {isLoading && <LoadingSpinner />}
 
         {error && (
-          <div className="card p-5 flex items-start gap-3 animate-in" style={{ borderColor: "var(--danger)", borderLeftWidth: "3px" }}>
-            <AlertCircle className="w-[18px] h-[18px] flex-shrink-0 mt-0.5" style={{ color: "var(--danger)" }} />
-            <p className="text-[14px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>{error}</p>
+          <div
+            className="card flex items-start gap-3 border-l-4 p-5 animate-in"
+            style={{ borderLeftColor: "var(--danger)" }}
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" style={{ color: "var(--danger)" }} />
+            <p className="text-[15px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>{error}</p>
           </div>
         )}
 
@@ -170,6 +194,9 @@ function App({
               userName={userName}
               imageSrc={rxImageUrl!}
               analysis={prescriptionAnalysis!}
+              previousAnalysis={previousAnalysis}
+              prescriptionSummary={prescriptionSummary}
+              hasConvex={hasConvex}
               onScanAnother={goScanAnother}
               onSearchMedicines={goSearchMedicines}
               activitySlot={
@@ -202,35 +229,44 @@ function App({
                   />
                 )}
                 {results.length > 0 && !prescriptionAnalysis && (
-                  <div className="custom-scrollbar max-h-[min(50vh,480px)] space-y-4 overflow-y-auto pr-1 pt-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="w-4 h-4" style={{ color: "var(--primary)" }} />
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em]" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>
-                        {tr.resultsFor} &ldquo;{lastQuery}&rdquo; — {results.length} {tr.medicines}
-                      </p>
-                    </div>
-                    {prescriptionSummary && (
-                      <div
-                        className="card animate-in border-2 p-4 sm:p-5"
-                        style={{ borderColor: "var(--border)", borderLeftWidth: "4px", borderLeftColor: "var(--primary)", background: "var(--surface-2)" }}
-                      >
-                        <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--primary)", fontFamily: "var(--font-inter)" }}>
-                          {tr.prescriptionSummaryTitle}
+                  <div className="custom-scrollbar max-h-[min(50vh,480px)] space-y-4 overflow-y-auto border-t border-[var(--border)] pt-4">
+                    <p className="royal-kicker text-[10px]">
+                      {tr.resultsFor} &ldquo;{lastQuery}&rdquo; — {results.length} {tr.medicines}
+                    </p>
+                    {(simplifiedSummary || prescriptionSummary) && (
+                      <div className="card border-l-4 p-4" style={{ borderLeftColor: "var(--gold)", background: "var(--surface-2)" }}>
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <p className="royal-kicker text-[10px]">{tr.prescriptionSummaryTitle}</p>
+                          {prescriptionSummary && (
+                            <SimplifyButton
+                              text={prescriptionSummary}
+                              onSimplified={(t) => setSimplifiedSummary(t)}
+                            />
+                          )}
+                          <TtsButton text={simplifiedSummary || prescriptionSummary || ""} />
+                          <ExportPdfButton
+                            title={tr.prescriptionSummaryTitle}
+                            summary={simplifiedSummary || prescriptionSummary || undefined}
+                            medicines={results}
+                          />
+                        </div>
+                        <p className="text-[14px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>
+                          {simplifiedSummary || prescriptionSummary}
                         </p>
-                        <p className="text-[13px] leading-relaxed" style={{ color: "var(--text-2)", fontFamily: f }}>
-                          {prescriptionSummary}
-                        </p>
-                        <p className="mt-2 text-[10px]" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>
-                          {tr.prescriptionSummaryHint}
-                        </p>
+                        <p className="mt-2 text-[11px] text-[var(--text-4)]" style={{ fontFamily: f }}>{tr.prescriptionSummaryHint}</p>
                       </div>
                     )}
+                    {results.length >= 2 && (
+                      <RxFollowUpChat
+                        contextSummary={[
+                          prescriptionSummary || "",
+                          ...results.map((m) => `${m.name || m.nameUrdu}: ${m.dosage} ${m.timing}`),
+                        ].join("\n")}
+                      />
+                    )}
                     {results.map((m, i) => (
-                      <ResultCard key={i} medicine={m} index={i} />
+                      <ResultCard key={i} medicine={m} index={i} hasConvex={hasConvex} />
                     ))}
-                    <div className="border-t border-[var(--border)] pt-4 text-center">
-                      <p className="text-[11px] leading-relaxed text-[var(--text-4)]" style={{ fontFamily: f }}>{tr.disclaimer}</p>
-                    </div>
                   </div>
                 )}
               </>
@@ -238,26 +274,25 @@ function App({
             centerSlot={
               <>
                 {activeTab === "photo" && previewDataUrl ? (
-                  <button
-                    type="button"
-                    onClick={() => setPreviewLightbox(true)}
-                    className="flex w-full flex-1 cursor-zoom-in flex-col items-center justify-center overflow-hidden rounded-xl bg-[var(--surface-2)] p-2"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={previewDataUrl} alt="" className="max-h-[min(50vh,360px)] w-full object-contain" />
-                  </button>
+                  <div className="flex w-full flex-1 flex-col gap-3">
+                    <CameraCoach previewUrl={previewDataUrl} />
+                    <button
+                      type="button"
+                      onClick={() => setPreviewLightbox(true)}
+                      className="flex flex-1 cursor-zoom-in flex-col items-center justify-center overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--surface-2)] p-3"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={previewDataUrl} alt="" className="max-h-[min(50vh,360px)] w-full object-contain" />
+                    </button>
+                  </div>
                 ) : activeTab === "photo" ? (
-                  <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-2)]/40 p-8 text-center lg:min-h-[280px]">
-                    <FileImage className="h-14 w-14 text-[var(--primary)]/50" />
-                    <p className="text-[13px] leading-relaxed text-[var(--text-4)]" style={{ fontFamily: f }}>
-                      {tr.workspaceCenterHint}
-                    </p>
+                  <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-[var(--border)] p-8 text-center lg:min-h-[280px]">
+                    <FileImage className="h-12 w-12 text-[var(--gold)]" />
+                    <p className="text-[14px] leading-relaxed text-[var(--text-3)]" style={{ fontFamily: f }}>{tr.workspaceCenterHint}</p>
                   </div>
                 ) : (
-                  <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-2)]/30 p-6 text-center lg:min-h-[280px]">
-                    <p className="text-[13px] leading-relaxed text-[var(--text-3)]" style={{ fontFamily: f }}>
-                      {tr.workspaceTextCenterHint}
-                    </p>
+                  <div className="flex min-h-[220px] flex-1 flex-col items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--surface-2)]/50 p-6 text-center lg:min-h-[280px]">
+                    <p className="text-[14px] leading-relaxed text-[var(--text-3)]" style={{ fontFamily: f }}>{tr.workspaceTextCenterHint}</p>
                   </div>
                 )}
               </>
@@ -273,40 +308,30 @@ function App({
         {previewLightbox && previewDataUrl ? (
           <button
             type="button"
-            className="fixed inset-0 z-[10050] flex cursor-default items-center justify-center border-0 bg-black/85 p-4 backdrop-blur-sm"
+            className="fixed inset-0 z-[10050] flex cursor-default items-center justify-center border-0 bg-[var(--navy)]/90 p-4 backdrop-blur-sm"
             onClick={() => setPreviewLightbox(false)}
             aria-label="Close"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewDataUrl}
-              alt=""
-              className="max-h-[90vh] max-w-full cursor-zoom-out object-contain"
-              onClick={(e) => e.stopPropagation()}
-            />
+            <img src={previewDataUrl} alt="" className="max-h-[90vh] max-w-full cursor-zoom-out object-contain" onClick={(e) => e.stopPropagation()} />
           </button>
         ) : null}
 
-        <section id="about-marketing" className="scroll-mt-24 space-y-10 pt-6">
-          <LandingSections />
-        </section>
+        <MedicineCabinet hasConvex={hasConvex} />
 
+        <LandingSections />
         <FaqFooter />
-      </div>
+      </main>
     </div>
   );
 }
 
 function AppWithConvex() {
   const saveQueryMutation = useMutation(api.mutations.saveQuery);
-  const saveQuery = useCallback(
-    async (args: SaveQueryArgs) => {
-      await saveQueryMutation(args);
-    },
-    [saveQueryMutation]
-  );
+  const saveQuery = useCallback(async (args: SaveQueryArgs) => { await saveQueryMutation(args); }, [saveQueryMutation]);
   return (
     <App
+      hasConvex
       saveQuery={saveQuery}
       renderRecentQueries={(onSelect) => <RecentQueries onSelect={onSelect} />}
     />
@@ -314,11 +339,10 @@ function AppWithConvex() {
 }
 
 function AppWithoutConvex() {
-  const saveQuery = useCallback(async (_args: SaveQueryArgs) => {
-    /* Convex not configured */
-  }, []);
+  const saveQuery = useCallback(async (_args: SaveQueryArgs) => {}, []);
   return (
     <App
+      hasConvex={false}
       saveQuery={saveQuery}
       renderRecentQueries={() => <RecentQueriesDisabled />}
       showConvexBanner
@@ -332,9 +356,7 @@ export default function Home() {
     <ThemeProvider>
       <LanguageProvider>
         {hasConvex ? (
-          <ConvexClientProvider>
-            <AppWithConvex />
-          </ConvexClientProvider>
+          <ConvexClientProvider><AppWithConvex /></ConvexClientProvider>
         ) : (
           <AppWithoutConvex />
         )}

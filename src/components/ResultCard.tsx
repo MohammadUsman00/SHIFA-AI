@@ -6,10 +6,17 @@ import { useLang } from "./providers/LanguageProvider";
 import { bodyFontVar } from "@/lib/lang-ui";
 import WarningBadge from "./WarningBadge";
 import SourceBadge from "./SourceBadge";
+import SaveToCabinetButton from "./features/SaveToCabinetButton";
+import TtsButton from "./features/TtsButton";
+import ExportPdfButton from "./features/ExportPdfButton";
 
-interface Props { medicine: MedicineResult; index: number; }
+interface Props {
+  medicine: MedicineResult;
+  index: number;
+  hasConvex?: boolean;
+}
 
-export default function ResultCard({ medicine, index }: Props) {
+export default function ResultCard({ medicine, index, hasConvex = false }: Props) {
   const { tr, lang } = useLang();
   const f = bodyFontVar(lang);
   const has = medicine.purpose || medicine.dosage || medicine.timing;
@@ -26,7 +33,7 @@ export default function ResultCard({ medicine, index }: Props) {
   ];
 
   return (
-    <div className="card overflow-hidden animate-up gradient-border" style={{ animationDelay: `${index * 80}ms` }}>
+    <div className="card overflow-hidden animate-up gradient-border border-l-4" style={{ animationDelay: `${index * 80}ms`, borderLeftColor: "var(--gold)" }}>
       {/* Header */}
       <div className="px-6 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid var(--border)" }}>
         <div>
@@ -39,14 +46,14 @@ export default function ResultCard({ medicine, index }: Props) {
               dir={lang === "ur" ? "ltr" : "auto"}
               style={{
                 color: "var(--text-4)",
-                fontFamily: lang === "ur" ? "var(--font-inter)" : "var(--font-urdu)",
+                fontFamily: lang === "ur" ? "var(--font-sans)" : "var(--font-urdu)",
               }}
             >
               {subTitle}
             </p>
           )}
         </div>
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "var(--primary-subtle)" }}>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 border" style={{ background: "var(--primary-subtle)", borderColor: "var(--gold)" }}>
           <Pill className="w-[18px] h-[18px]" style={{ color: "var(--primary)" }} />
         </div>
       </div>
@@ -90,6 +97,19 @@ export default function ResultCard({ medicine, index }: Props) {
             {medicine.sources.map((s, i) => <SourceBadge key={i} source={s} />)}
           </div>
         )}
+
+        <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+          <SaveToCabinetButton medicine={medicine} hasConvex={hasConvex} />
+          <TtsButton
+            text={[mainTitle, medicine.purpose, medicine.dosage, medicine.timing, medicine.warnings]
+              .filter(Boolean)
+              .join(". ")}
+          />
+          <ExportPdfButton
+            title={mainTitle || tr.medInfo}
+            medicines={[medicine]}
+          />
+        </div>
       </div>
     </div>
   );

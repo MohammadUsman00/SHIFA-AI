@@ -1,7 +1,6 @@
 import type { Lang } from "../translations";
 
 export type { Lang };
-export { hi } from "./hi";
 
 export const languages = [
   { code: "en" as Lang, label: "EN", nativeLabel: "English", dir: "ltr" as const },

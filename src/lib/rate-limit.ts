@@ -89,7 +89,7 @@ function tooManyResponse(retryAfterSec?: number): NextResponse {
  */
 export async function enforceApiRateLimit(
   request: NextRequest,
-  namespace: "analyze" | "enrich" | "scrape"
+  namespace: "analyze" | "enrich" | "scrape" | "chat" | "simplify" | "interactions"
 ): Promise<NextResponse | null> {
   if (process.env.RATE_LIMIT_DISABLED === "true") {
     return null;

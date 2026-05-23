@@ -5,7 +5,7 @@ describe("lang-ui", () => {
   it("maps body font to CSS variables", () => {
     expect(bodyFontVar("ur")).toBe("var(--font-urdu)");
     expect(bodyFontVar("hi")).toBe("var(--font-hindi)");
-    expect(bodyFontVar("en")).toBe("var(--font-inter)");
+    expect(bodyFontVar("en")).toBe("var(--font-sans)");
   });
 
   it("maps script classes", () => {
@@ -17,6 +17,6 @@ describe("lang-ui", () => {
   it("maps title classes", () => {
     expect(scriptTitleClass("ur")).toBe("urdu-title");
     expect(scriptTitleClass("hi")).toBe("hindi-title");
-    expect(scriptTitleClass("en")).toBe("");
+    expect(scriptTitleClass("en")).toBe("display-heading");
   });
 });

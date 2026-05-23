@@ -2,25 +2,21 @@
 
 import { Clock } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
-import { bodyFontVar } from "@/lib/lang-ui";
+import { bodyFontVar, chromeFontVar } from "@/lib/lang-ui";
 
 export default function RecentQueriesDisabled() {
   const { tr, lang } = useLang();
   const f = bodyFontVar(lang);
+  const chrome = chromeFontVar(lang);
 
   return (
     <div className="card overflow-hidden">
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-[var(--text-4)]/40" />
-          <span
-            className="text-xs uppercase tracking-widest text-[var(--text-4)] font-mono"
-            style={{ fontFamily: "var(--font-inter)" }}
-          >
-            Live Queries
-          </span>
+          <span className="royal-kicker text-[10px]">{tr.recentQueries}</span>
         </div>
-        <span className="text-xs text-[var(--text-4)]/60" style={{ fontFamily: "var(--font-inter)" }}>
+        <span className="text-xs text-[var(--text-4)]/60" style={{ fontFamily: chrome }}>
           —
         </span>
       </div>

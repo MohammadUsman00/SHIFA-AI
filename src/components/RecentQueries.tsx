@@ -4,7 +4,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Clock, Pill, Camera } from "lucide-react";
 import { useLang } from "./providers/LanguageProvider";
-import { bodyFontVar } from "@/lib/lang-ui";
+import { bodyFontVar, chromeFontVar } from "@/lib/lang-ui";
 
 interface Props { onSelect?: (name: string) => void; }
 
@@ -12,21 +12,17 @@ export default function RecentQueries({ onSelect }: Props) {
   const queries = useQuery(api.queries.getRecentQueries);
   const { tr, lang } = useLang();
   const f = bodyFontVar(lang);
+  const chrome = chromeFontVar(lang);
 
   return (
     <div className="card overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
         <div className="flex items-center gap-2">
-          <div className="h-2 w-2 animate-pulse rounded-full bg-teal-400 dark:bg-[var(--primary)]" />
-          <span
-            className="text-xs uppercase tracking-widest text-[var(--text-4)] font-mono"
-            style={{ fontFamily: "var(--font-inter)" }}
-          >
-            Live Queries
-          </span>
+          <div className="h-2 w-2 animate-pulse rounded-full bg-[var(--primary)]" />
+          <span className="royal-kicker text-[10px]">{tr.recentQueries}</span>
         </div>
-        <span className="text-xs text-[var(--text-4)]/80" style={{ fontFamily: "var(--font-inter)" }}>
+        <span className="text-xs text-[var(--text-4)]/80" style={{ fontFamily: chrome }}>
           powered by Convex
         </span>
       </div>
@@ -77,7 +73,7 @@ export default function RecentQueries({ onSelect }: Props) {
                 <p className="truncate text-sm font-medium text-[var(--text-2)]" style={{ fontFamily: "var(--font-urdu)" }}>
                   {q.medicineName}
                 </p>
-                <p className="text-xs text-[var(--text-4)]" dir="ltr" style={{ fontFamily: "var(--font-inter)" }}>
+                <p className="text-xs text-[var(--text-4)]" dir="ltr" style={{ fontFamily: chrome }}>
                   {new Date(q.timestamp).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
                 </p>
               </div>

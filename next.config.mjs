@@ -3,6 +3,17 @@ const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
 
+  // OneDrive / Windows: reliable file watching so .next assets are not half-written
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
+    return config;
+  },
+
   async headers() {
     return [
       {

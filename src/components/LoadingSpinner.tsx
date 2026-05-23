@@ -8,14 +8,19 @@ export default function LoadingSpinner() {
   const f = bodyFontVar(lang);
 
   return (
-    <div className="card p-10 flex flex-col items-center gap-5 animate-in">
-      <div className="relative w-10 h-10">
-        <div className="absolute inset-0 rounded-full" style={{ border: "2px solid var(--border)" }} />
-        <div className="absolute inset-0 rounded-full" style={{ border: "2px solid transparent", borderTopColor: "var(--primary)", animation: "spin 0.8s linear infinite" }} />
+    <div className="cause-panel flex flex-col items-center gap-5 p-12 animate-in" role="status">
+      <div className="relative h-12 w-12">
+        <div className="absolute inset-0 rounded-full border-2" style={{ borderColor: "var(--border)" }} />
+        <div
+          className="absolute inset-0 rounded-full border-2 border-transparent"
+          style={{ borderTopColor: "var(--gold)", animation: "spin 0.8s linear infinite" }}
+        />
       </div>
       <div className="text-center">
-        <p className="text-[14px] font-medium" style={{ color: "var(--text-2)", fontFamily: f }}>{tr.analyzing}</p>
-        <p className="text-[12px] mt-1" style={{ color: "var(--text-4)", fontFamily: "var(--font-inter)" }}>AI is reading your query</p>
+        <p className="royal-title text-lg" style={{ fontFamily: f, color: "var(--text)" }}>{tr.analyzing}</p>
+        <p className="mt-1 text-sm text-[var(--text-4)]" style={{ fontFamily: f }}>
+          {lang === "ur" ? "براہ کرم انتظار کریں" : lang === "hi" ? "कृपया प्रतीक्षा करें" : "Please wait a moment"}
+        </p>
       </div>
     </div>
   );

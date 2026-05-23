@@ -1,94 +1,111 @@
 "use client";
 
-import { Activity, Sun, Moon, LogOut } from "lucide-react";
+import { Heart, LogOut, Moon, Sun } from "lucide-react";
 import { useTheme } from "./providers/ThemeProvider";
 import { useLang } from "./providers/LanguageProvider";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { bodyFontVar } from "@/lib/lang-ui";
+import { featureCopy } from "@/lib/feature-copy";
 
 interface Props {
-  userName: string;
-  onLogout: () => void;
+  userName?: string;
+  onLogout?: () => void;
   showSectionLinks?: boolean;
+  minimal?: boolean;
 }
 
-const navLinkClass =
-  "rounded-lg px-2 py-1.5 text-[11px] font-medium transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text)] whitespace-nowrap";
-const navLinkStyle = { color: "var(--text-3)", fontFamily: "var(--font-inter)" } as const;
-
-export default function Navbar({ userName, onLogout, showSectionLinks }: Props) {
+export default function Navbar({ userName, onLogout, showSectionLinks, minimal }: Props) {
   const { theme, toggle: toggleTheme } = useTheme();
   const { lang, tr } = useLang();
   const titleFont = bodyFontVar(lang);
 
+  const fc = featureCopy(lang);
+  const links: [string, string][] = showSectionLinks
+    ? [
+        ["#mission", tr.navProblem],
+        ["#approach", tr.navApproach],
+        ["#how", tr.navHow],
+        ["#assistant", tr.navAssistant],
+        ["#cabinet", fc.navCabinet],
+        ["#faq", tr.navFaq],
+      ]
+    : minimal
+      ? [
+          ["#mission", tr.navProblem],
+          ["#begin", lang === "ur" ? "شروع کریں" : lang === "hi" ? "शुरू करें" : "Begin"],
+        ]
+      : [];
+
   return (
-    <nav className="sticky top-0 z-50 animate-in" style={{ background: "color-mix(in srgb, var(--bg) 80%, transparent)", backdropFilter: "blur(16px) saturate(180%)", borderBottom: "1px solid var(--border)" }}>
-      <div className="max-w-7xl mx-auto px-5 sm:px-8">
-        <div className="flex items-center justify-between gap-2 min-h-14 py-2 sm:py-0 sm:h-14 flex-wrap sm:flex-nowrap">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))" }}>
-              <Activity className="w-[18px] h-[18px] text-white" />
-            </div>
-            <span className="text-[15px] font-bold tracking-tight" style={{ color: "var(--text)", fontFamily: titleFont }}>
+    <header className="site-nav sticky top-0 z-50">
+      <div className="shifa-container flex min-h-[4rem] items-center justify-between gap-3 py-3">
+        <a href="#" className="flex min-w-0 items-center gap-3">
+          <div
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border"
+            style={{ borderColor: "var(--gold)", background: "var(--navy)" }}
+          >
+            <Heart className="h-5 w-5 text-[var(--gold)]" fill="currentColor" />
+          </div>
+          <div className="min-w-0">
+            <span
+              className="block text-[17px] font-semibold leading-tight tracking-tight"
+              style={{ fontFamily: titleFont, color: "var(--text)" }}
+              translate="no"
+            >
               {tr.appName}
             </span>
-            <span className="hidden sm:inline-block text-[11px] font-medium tracking-wider uppercase px-2 py-0.5 rounded-full" style={{ color: "var(--primary)", background: "var(--primary-subtle)", fontFamily: "var(--font-inter)" }}>
-              BETA
-            </span>
+            <span className="royal-kicker hidden text-[9px] sm:block">{tr.welcomeKicker}</span>
           </div>
+        </a>
 
-          {showSectionLinks && (
-            <div
-              className="order-3 flex w-full basis-full items-center justify-start gap-1 overflow-x-auto pb-1 sm:order-none sm:w-auto sm:basis-auto sm:flex-1 sm:justify-center sm:px-2 sm:pb-0 lg:gap-2"
-              style={{ WebkitOverflowScrolling: "touch" }}
-            >
-              <a href="#problem" className={navLinkClass} style={navLinkStyle}>
-                {tr.navProblem}
+        {links.length > 0 && (
+          <nav
+            className="hidden flex-1 items-center justify-center gap-0.5 md:flex"
+            aria-label="Main"
+          >
+            {links.map(([href, label]) => (
+              <a key={href} href={href} className="nav-link">
+                {label}
               </a>
-              <a href="#approach" className={navLinkClass} style={navLinkStyle}>
-                {tr.navApproach}
-              </a>
-              <a href="#how" className={navLinkClass} style={navLinkStyle}>
-                {tr.navHow}
-              </a>
-              <a href="#assistant" className={navLinkClass} style={navLinkStyle}>
-                {tr.navAssistant}
-              </a>
-              <a href="#activity" className={navLinkClass} style={navLinkStyle}>
-                {tr.navActivity}
-              </a>
-              <a href="#faq" className={navLinkClass} style={navLinkStyle}>
-                {tr.navFaq}
-              </a>
-            </div>
-          )}
+            ))}
+          </nav>
+        )}
 
-          {/* Controls */}
-          <div className="flex items-center gap-1 shrink-0 ml-auto sm:ml-0">
-            <LanguageSwitcher />
+        <div className="flex shrink-0 items-center gap-1.5">
+          <LanguageSwitcher />
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className="btn-ghost rounded-full p-2"
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+          >
+            {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
 
-            <button onClick={toggleTheme} className="btn-ghost px-2 py-1.5 rounded-lg" title={theme === "dark" ? "Light mode" : "Dark mode"}>
-              {theme === "dark" ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
-            </button>
-
-            <div className="w-px h-5 mx-1" style={{ background: "var(--border)" }} />
-
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg" style={{ background: "var(--surface-2)" }}>
-              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ background: "linear-gradient(135deg, var(--gradient-from), var(--gradient-to))", color: "white" }}>
-                {userName.charAt(0).toUpperCase()}
+          {userName && onLogout && (
+            <>
+              <div className="mx-1 hidden h-5 w-px sm:block" style={{ background: "var(--border)" }} />
+              <div
+                className="hidden items-center gap-2 rounded-full px-2.5 py-1 sm:flex"
+                style={{ background: "var(--surface-2)", border: "1px solid var(--border)" }}
+              >
+                <span
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] font-bold"
+                  style={{ background: "var(--navy)", color: "var(--gold-light)" }}
+                >
+                  {userName.charAt(0).toUpperCase()}
+                </span>
+                <span className="max-w-[6rem] truncate text-[12px] font-medium" style={{ color: "var(--text-2)" }}>
+                  {userName}
+                </span>
               </div>
-              <span className="text-[12px] font-medium hidden sm:block" style={{ color: "var(--text-2)", fontFamily: "var(--font-inter)" }}>
-                {userName}
-              </span>
-            </div>
-
-            <button onClick={onLogout} className="btn-ghost px-2 py-1.5 rounded-lg ml-0.5" title="Logout">
-              <LogOut className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              <button type="button" onClick={onLogout} className="btn-ghost rounded-full p-2" title="Logout">
+                <LogOut className="h-4 w-4" />
+              </button>
+            </>
+          )}
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
